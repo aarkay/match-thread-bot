@@ -7,7 +7,7 @@ Match thread creation bot for football/soccer matches on reddit. Developed using
 login.txt
 -----
 
-To run this bot, you must have a file called 'login.txt' in the same directory. This file should contain exactly four lines: the bot's username, the bot's password, the bot's user agent, and the subreddit that the bot will be used in. For example, if I wanted to use this code to allow a bot called 'TestThreadBot' with the password 'ThisIsATestPassword' to the subreddit 'SubForTesting', the login.txt file would look like this:
+To run this bot, you must have a file called 'login.txt' in the same directory. This file should contain exactly four lines: the bot's username, the bot's password, the subreddit that the bot will be used in, and the bot's user agent. For example, if I wanted to use this code to allow a bot called 'TestThreadBot' with the password 'ThisIsATestPassword' to the subreddit 'SubForTesting', the login.txt file would look like this:
 
     TestThreadBot
     ThisIsATestPassword
