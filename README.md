@@ -7,15 +7,12 @@ Match thread creation bot for football/soccer matches on reddit. Developed using
 login.txt
 -----
 
-To run this bot, you must have a file called 'login.txt' in the same directory. This file should contain exactly four lines: the bot's username, the bot's password, the subreddit that the bot will be used in, and the bot's user agent. For example, if I wanted to use this code to allow a bot called 'TestThreadBot' with the password 'ThisIsATestPassword' to the subreddit 'SubForTesting', the login.txt file would look like this:
+To run this bot, you must have a file called 'login.txt' in the same directory. This file should contain a single line with four pieces of information: the bot's username, the bot's password, the subreddit that the bot will be used in, and the bot's user agent. Each of these should be separated by a single colon. For example, if I wanted to use this code to allow a bot called 'TestThreadBot' with the password 'ThisIsATestPassword' to the subreddit 'SubForTesting', the login.txt file would look like this:
 
-    TestThreadBot
-    ThisIsATestPassword
-    SubForTesting
-    TestThreadBot v0.1 by /u/iliketotestthings
+    TestThreadBot:ThisIsATestPassword:SubForTesting:TestThreadBot v0.1 by /u/iliketotestthings
 
     
-The fourth line, the bot's user agent, should be provided as per [reddit's API rules](https://github.com/reddit/reddit/wiki/API).
+The fourth detail, the bot's user agent, should be provided as per [reddit's API rules](https://github.com/reddit/reddit/wiki/API).
 
 mtb.py
 -----
