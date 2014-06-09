@@ -23,4 +23,4 @@ In this file is the code used to run MatchThreadder - as long as you change the 
 
 If/when the bot runs into any HTTP errors (reddit is down, can't access goal.com, etc) it will sleep for 2 minutes and try again.
 
-If a message is titled 'Match Thread', the bot will attempt to find info about the match and post a match thread to the specified subreddit. If a message is titled 'Match Info', the bot will attempt to find info about the match and then reply to the user with a template for the match thread so the user can post and update the thread themselves.
+If a message is titled 'Match Thread', the bot will attempt to find info about the match and then post a match thread to the specified subreddit. If a message is titled 'Match Info', the bot will attempt to find info about the match and then reply to the user with a template for the match thread so the user can post and update the thread themselves.
