@@ -10,6 +10,15 @@ from time import sleep
 
 # every minute, check mail, create new threads, update all current threads
 
+# browser header (to avoid 405 error)
+hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+   'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+   'Accept-Encoding': 'none',
+   'Accept-Language': 'en-US,en;q=0.8',
+   'Connection': 'keep-alive'}
+
+
 def login():
 	try:
 		f = open('login.txt')
@@ -51,12 +60,6 @@ def readData():
 
 def findGoalSite(team1, team2):
 	# search for each word in each team name in goal.com's fixture list, return most frequent result
-	hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
 	t1 = team1.split()
 	t2 = team2.split()
 	linkList = []
@@ -82,12 +85,6 @@ def findGoalSite(team1, team2):
 def getLineUps(matchID):
 	# try to find line-ups (404 if line-ups not on goal.com yet)
 	try:
-		hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-		   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-		   'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-		   'Accept-Encoding': 'none',
-		   'Accept-Language': 'en-US,en;q=0.8',
-		   'Connection': 'keep-alive'}
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
 		req = urllib2.Request(lineAddress, headers=hdr)
 		lineWebsite = urllib2.urlopen(req)
@@ -125,12 +122,6 @@ def getLineUps(matchID):
 
 # check if match is finished - search for "FT"
 def isMatchComplete(matchID):
-	hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
 	req = urllib2.Request(lineAddress, headers=hdr)
 	lineWebsite = urllib2.urlopen(req)
@@ -140,12 +131,6 @@ def isMatchComplete(matchID):
 	
 # get venue, ref, lineups, etc from goal.com	
 def getGDCinfo(matchID):
-	hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
 	req = urllib2.Request(lineAddress, headers=hdr)
 	lineWebsite = urllib2.urlopen(req)
@@ -193,12 +178,6 @@ def writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
 	return body
 	
 def grabEvents(matchID):
-	hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
 	req = urllib2.Request(lineAddress, headers=hdr)
 	lineWebsite = urllib2.urlopen(req)
@@ -234,12 +213,6 @@ def grabEvents(matchID):
 	return body
 	
 def findWiziwigID(team1,team2):
-	hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
 	t1 = team1.split()
 	t2 = team2.split()
 	linkList = []
@@ -274,7 +247,12 @@ def findFirstrowID(team1,team2):
 	t2 = team2.split()
 	linkList = []
 	fixAddress = "http://gofirstrowus.eu/"
-	fixWebsite = urllib2.urlopen(fixAddress)
+	req = urllib2.Request(fixAddress, headers=hdr)
+	try:
+		fixWebsite = urllib2.urlopen(req)
+	except urllib2.HTTPError, e:
+		logging.error("Couldn't access firstrow streams for %s vs %s", team1,team2)
+		return 'no match'
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
@@ -296,12 +274,6 @@ def findFirstrowID(team1,team2):
 
 # nutjob is dead! Remove this method if it's not coming back		
 def findNutjobID(team1,team2):
-	hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
 	t1 = team1.split()
 	t2 = team2.split()
 	linkList = []
@@ -494,6 +466,12 @@ def checkAndCreate():
 
 # update score, scorers
 def updateScore(matchID, t1, t2):
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
+	req = urllib2.Request(lineAddress, headers=hdr)
+	lineWebsite = urllib2.urlopen(req)
+	line_html_enc = lineWebsite.read()
+	line_html = line_html_enc.decode("utf8")
+
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
 	lineWebsite = urllib2.urlopen(lineAddress)
 	line_html_enc = lineWebsite.read()
@@ -501,9 +479,9 @@ def updateScore(matchID, t1, t2):
 	leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
 	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
 	
-	split1 = line_html.split('<div class="home"') # [0]:nonsense [1]:scores
-	split2 = split1[1].split('<div class="away"') # [0]:home score [1]:away scores + nonsense
-	split3 = split2[1].split('<div class="module') # [0]:away score [1]:nonsense
+	split1 = line_html.split('<div class="home"') # [0]:nonsense [1]:scorers
+	split2 = split1[1].split('<div class="away"') # [0]:home scorers [1]:away scorers + nonsense
+	split3 = split2[1].split('<div class="module') # [0]:away scorers [1]:nonsense
 	
 	leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
