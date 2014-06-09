@@ -15,7 +15,7 @@ To run this bot, you must have a file called 'login.txt' in the same directory. 
     TestThreadBot v0.1 by /u/iliketotestthings
 
     
-The fourth line, the bot's user agent, should be provided as per [reddit's API guidelines](https://github.com/reddit/reddit/wiki/API).
+The fourth line, the bot's user agent, should be provided as per [reddit's API rules](https://github.com/reddit/reddit/wiki/API).
 
 mtb_v12.py
 -----
