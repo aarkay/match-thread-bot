@@ -13,10 +13,7 @@ from time import sleep
 def login():
 	try:
 		f = open('login.txt')
-		username = f.readline()
-		password = f.readline()
-		subreddit = f.readline()
-		user_agent = f.readline()
+		username,password,subreddit,user_agent = f.readline().split(':',4)
 		r = praw.Reddit(user_agent)
 		r.login(username,password)
 		f.close()

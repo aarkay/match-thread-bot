@@ -1,4 +1,1 @@
-TestThreadBot
-ThisIsATestPassword
-SubForTesting
-TestThreadBot v0.1 by /u/iliketotestthings
+TestThreadBot:ThisIsATestPassword:SubForTesting:TestThreadBot v0.1 by /u/iliketotestthings
