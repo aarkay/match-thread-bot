@@ -1,7 +1,7 @@
 match-thread-bot
 ================
 
-Match thread creation bot for football (soccer) matches on reddit. Uses goal.com to grab most of its info.
+Match thread creation bot for football (soccer) matches on reddit. Developed using [Python 2.7](https://www.python.org/download/releases/2.7.7/) and requires [PRAW](https://praw.readthedocs.org/en/v2.1.16/). Uses goal.com to grab most of its info.
 
 
 login.txt
