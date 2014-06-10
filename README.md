@@ -12,7 +12,7 @@ To run this bot, you must have a file called 'login.txt' in the same directory. 
     TestThreadBot:ThisIsATestPassword:SubForTesting:TestThreadBot v0.1 by /u/iliketotestthings
 
     
-The fourth detail, the bot's user agent, should be provided as per [reddit's API rules](https://github.com/reddit/reddit/wiki/API). Note that reddit asks new accounts to complete a captcha if they want to post anything and I haven't put anything in the code to get around that, so you'll need to figure out a way to get your bot account a lot of karma if you want it to work autonomously. A future update might see better captcha handling.
+The fourth detail, the bot's user agent, should be provided as per [reddit's API rules](https://github.com/reddit/reddit/wiki/API). Note that reddit asks new accounts to complete a captcha if they want to post anything and I haven't put anything in the code to get around that, so you'll need to figure out a way to get your bot account a lot of karma if you want it to work autonomously.
 
 mtb.py
 -----
