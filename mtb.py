@@ -371,7 +371,8 @@ def createNewThread(team1,team2):
 		id = short[15:].encode("utf8")
 		redditstream = 'http://www.reddit-stream.com/comments/' + id 
 		
-		body = '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
+		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
+		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += '[](//#stream-big) **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
 		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
@@ -379,7 +380,6 @@ def createNewThread(team1,team2):
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
 		body += '\n\n------------\n\n[](//#net-big) **MATCH EVENTS**\n\n'
-		body += '**' + t1 + ' 0-0 ' + t2 + '**'
 		
 		thread.edit(body)
 		data = site, t1, t2, id, body, teamsDone
@@ -399,7 +399,8 @@ def createMatchInfo(team1,team2):
 			
 		teamsDone = (team1Start[0]!="TBA") and (team1Sub[0]!="TBA") and (team2Start[0]!="TBA") and (team2Sub[0]!="TBA")
 		
-		body = '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
+		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
+		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += '[](//#stream-big) **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
 		body += '[Reddit comments stream](LINK-TO-REDDIT-STREAM-HERE)\n\n---------\n\n'
@@ -407,7 +408,6 @@ def createMatchInfo(team1,team2):
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
 		body += '\n\n------------\n\n[](//#net-big) **MATCH EVENTS**\n\n'
-		body += '**' + t1 + ' 0-0 ' + t2 + '**'
 		
 		logging.info("Provided info for %s vs %s", t1, t2)
 		print "Provided info for " + t1 + " vs " + t2
@@ -431,7 +431,7 @@ def firstTryTeams(msg):
 
 # check for new mail, create new threads if needed
 def checkAndCreate():
-	delims = [' - ',' x ',' v ',' vs ']
+	delims = [' x ',' - ',' v ',' vs ']
 	for msg in r.get_unread(unset_has_mail=True,update_user=True,limit=None):
 		msg.mark_as_read()
 		if msg.subject.lower() == 'match thread':
@@ -513,22 +513,24 @@ def updateThreads():
 		matchID,team1,team2,thread_id,body,teamsDone = data
 		thread = r.get_submission(submission_id = thread_id)
 		
+		venueIndex = body.index('**Venue**')
+		
 		# try to fill out remaining lineups
 		if teamsDone != True:
 			team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 			lineupIndex = body.index('**LINE-UPS**')
-			bodyTilThen = body[0:lineupIndex]
+			bodyTilThen = body[venueIndex:lineupIndex]
 			newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
 			newbody += '\n\n------------\n\n[](//#net-big) **MATCH EVENTS**\n\n'
 			teamsDone = (team1Start[0]!="TBA") and (team1Sub[0]!="TBA") and (team2Start[0]!="TBA") and (team2Sub[0]!="TBA")
 		else:
 			eventsIndex = body.index('**MATCH EVENTS**')
-			newbody = body[0:eventsIndex]
+			newbody = body[venueIndex:eventsIndex]
 			newbody +=  '**MATCH EVENTS**\n\n'
 			
 		# update scorelines
 		score = updateScore(matchID,team1,team2)
-		newbody += score
+		newbody = score + '\n\n--------\n\n' + newbody
 		
 		events = grabEvents(matchID)
 		newbody += '\n\n' + events
