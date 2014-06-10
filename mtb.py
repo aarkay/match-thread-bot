@@ -18,6 +18,7 @@ hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML,
    'Accept-Language': 'en-US,en;q=0.8',
    'Connection': 'keep-alive'}
 
+activeThreads = []
 
 def login():
 	try:
@@ -513,7 +514,7 @@ def updateThreads():
 		matchID,team1,team2,thread_id,body,teamsDone = data
 		thread = r.get_submission(submission_id = thread_id)
 		
-		venueIndex = body.index('**Venue**')
+		venueIndex = body.index('**Venue:**')
 		
 		# try to fill out remaining lineups
 		if teamsDone != True:
@@ -559,7 +560,6 @@ logging.info("[STARTUP]")
 
 r,subreddit = login()
 readData()
-activeThreads = []
 
 running = True
 while running:
