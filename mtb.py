@@ -4,13 +4,14 @@ from time import sleep
 
 # TO DO: 
 # more stream sources
+# add score to goal updates
 # manual inputs (delete thread)
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
 # more robust handling of errors
 
 # every minute, check mail, create new threads, update all current threads
 
-# browser header (to avoid 405 error)
+# browser header (to avoid 405 error with goal.com, streaming sites)
 hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
@@ -344,7 +345,7 @@ def createNewThread(team1,team2):
 	if site != 'no match':
 		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, matchDone = getGDCinfo(site)
 		
-		# don't create a thread if MatchThreadder already made it
+		# don't create a thread if the bot already made it
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,body_at,teamsDone_at = d
 			if t1 == t1_at:
@@ -419,7 +420,7 @@ def createMatchInfo(team1,team2):
 # default attempt to find teams: split input in half, left vs right	
 def firstTryTeams(msg):
 	t = msg.split()
-	spl = t.__len__()/2
+	spl = len(t)/2
 	t1 = t[0:spl]
 	t2 = t[spl+1:]
 	t1s = ''
