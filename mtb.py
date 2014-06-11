@@ -200,11 +200,9 @@ def grabEvents(matchID):
 			time = time[:-1] # goal.com leaves a space at the end
 			info = '**' + time + '** '
 			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal':
-				score = re.findall('data-title=.*?(. v .)',text,re.DOTALL)[0].replace(' v ','-')
-				info += '[](//#ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0] + score + '**'
+				info += '[](//#ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
 			if tag.lower() == 'own-goal':
-				score = re.findall('data-title=.*?(. v .)',text,re.DOTALL)[0].replace(' v ','-')
-				info += '[](//#red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0] + score + '**'
+				info += '[](//#red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
 			if tag.lower() == 'yellow-card':
 				info += '[](//#yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if tag.lower() == 'red-card':
