@@ -194,20 +194,22 @@ def grabEvents(matchID):
 	# goal.com's full commentary tagged as "action" - ignore these
 	# will only report goals (+ penalties, own goals), yellows, reds, subs - not sure what else goal.com reports
 	for text in events:
-		type = re.findall('(.*?)"',text,re.DOTALL)[0]
-		if type.lower() == 'goal' or type.lower() == 'penalty-goal' or type.lower() == 'own-goal' or type.lower() == 'yellow-card' or type.lower() == 'red-card' or type.lower() == 'substitution':
+		tag = re.findall('(.*?)"',text,re.DOTALL)[0]
+		if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal' or tag.lower() == 'yellow-card' or tag.lower() == 'red-card' or tag.lower() == 'substitution':
 			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
 			time = time[:-1] # goal.com leaves a space at the end
 			info = '**' + time + '** '
-			if type.lower() == 'goal' or type.lower() == 'penalty-goal':
-				info += '[](//#ball) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
-			if type.lower() == 'own-goal':
-				info += '[](//#red-ball) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
-			if type.lower() == 'yellow-card':
+			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal':
+				score = re.findall('data-title=.*?(. v .)',text,re.DOTALL)[0].replace(' v ','-')
+				info += '[](//#ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0] + score + '**'
+			if tag.lower() == 'own-goal':
+				score = re.findall('data-title=.*?(. v .)',text,re.DOTALL)[0].replace(' v ','-')
+				info += '[](//#red-ball) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0] + score + '**'
+			if tag.lower() == 'yellow-card':
 				info += '[](//#yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
-			if type.lower() == 'red-card':
+			if tag.lower() == 'red-card':
 				info += '[](//#red) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
-			if type.lower() == 'substitution':
+			if tag.lower() == 'substitution':
 				info += '[](//#sub) Substitution: [](//#down)' + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
 				info += ' [](//#up)' + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 			body = info + '\n\n' + body
