@@ -204,7 +204,7 @@ def grabEvents(matchID):
 				info += '[](//#ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0] + score + '**'
 			if tag.lower() == 'own-goal':
 				score = re.findall('data-title=.*?(. v .)',text,re.DOTALL)[0].replace(' v ','-')
-				info += '[](//#red-ball) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0] + score + '**'
+				info += '[](//#red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0] + score + '**'
 			if tag.lower() == 'yellow-card':
 				info += '[](//#yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if tag.lower() == 'red-card':
