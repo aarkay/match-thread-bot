@@ -99,10 +99,10 @@ def getLineUps(matchID):
 		managerDelim = '<div class="manager"'
 		split[4] = split[4].split(managerDelim)[0] # managers now excluded
 		
-		team1Start = re.findall('<span class="name">(.*?)<',split[1],re.DOTALL)
-		team2Start = re.findall('<span class="name">(.*?)<',split[2],re.DOTALL)	
-		team1Sub = re.findall('<span class="name">(.*?)<',split[3],re.DOTALL)
-		team2Sub = re.findall('<span class="name">(.*?)<',split[4],re.DOTALL)
+		team1Start = re.findall('<span class="name".*?>(.*?)<',split[1],re.DOTALL)
+		team2Start = re.findall('<span class="name".*?>(.*?)<',split[2],re.DOTALL)	
+		team1Sub = re.findall('<span class="name".*?>(.*?)<',split[3],re.DOTALL)
+		team2Sub = re.findall('<span class="name".*?>(.*?)<',split[4],re.DOTALL)
 
 		# if no players found, ie TBA
 		if team1Start == []:
@@ -205,7 +205,7 @@ def grabEvents(matchID):
 				info += '[](//#red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
 			if tag.lower() == 'yellow-card':
 				info += '[](//#yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
-			if tag.lower() == 'red-card':
+			if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
 				info += '[](//#red) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if tag.lower() == 'substitution':
 				info += '[](//#sub) Substitution: [](//#down)' + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
