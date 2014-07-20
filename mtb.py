@@ -179,7 +179,14 @@ def writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
 	body += ", ".join(x for x in team2Sub) + "."
 	return body
 	
-def grabEvents(matchID):
+def findScoreSide(time,left):
+	leftTimes = [int(x) for x in re.findall(r'\b\d+\b', left)]
+	if time in leftTimes:
+		return 'left'
+	else:
+		return 'right'
+
+def grabEvents(matchID,left):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
 	req = urllib2.Request(lineAddress, headers=hdr)
 	lineWebsite = urllib2.urlopen(req)
@@ -190,27 +197,41 @@ def grabEvents(matchID):
 	split = line_html.split('<ul class="commentaries') # [0]:nonsense [1]:events
 	events = split[1].split('<li data-event-type="')
 	events = events[1:]
+	events = events[::-1]
+	
+	L = 0
+	R = 0
 	
 	# goal.com's full commentary tagged as "action" - ignore these
 	# will only report goals (+ penalties, own goals), yellows, reds, subs - not sure what else goal.com reports
 	for text in events:
 		tag = re.findall('(.*?)"',text,re.DOTALL)[0]
-		if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal' or tag.lower() == 'yellow-card' or tag.lower() == 'red-card' or tag.lower() == 'substitution':
+		if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal' or tag.lower() == 'yellow-card' or tag.lower() == 'red-card' or tag.lower() == 'yellow-red' or tag.lower() == 'substitution':
 			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
 			time = time[:-1] # goal.com leaves a space at the end
 			info = '**' + time + '** '
 			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal':
-				info += '[](//#ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
+				info += '[](#icon-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
+				if findScoreSide(int(time.split("'")[0]),left) == 'left':
+					L += 1
+				else:
+					R += 1
+				info += ' **' + str(L) + '-' + str(R) + '**'
 			if tag.lower() == 'own-goal':
-				info += '[](//#red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
+				info += '[](#icon-red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
+				if findScoreSide(int(time.split("'")[0]),left) == 'left':
+					L += 1
+				else:
+					R += 1
+				info += ' **' + str(L) + '-' + str(R) + '**'
 			if tag.lower() == 'yellow-card':
-				info += '[](//#yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
+				info += '[](#icon-yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
-				info += '[](//#red) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
+				info += '[](#icon-red) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if tag.lower() == 'substitution':
-				info += '[](//#sub) Substitution: [](//#down)' + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
-				info += ' [](//#up)' + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
-			body = info + '\n\n' + body
+				info += '[](#icon-sub) Substitution: [](#icon-down)' + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
+				info += ' [](#icon-up)' + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
+			body += info + '\n\n'
 		
 	return body
 	
@@ -375,13 +396,13 @@ def createNewThread(team1,team2):
 		
 		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
-		body += '[](//#stream-big) **STREAMS**\n\n'
+		body += '[](#icon-stream-big) **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
 		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
-		body += '[](//#notes-big) ' 
+		body += '[](#icon-notes-big) ' 
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
-		body += '\n\n------------\n\n[](//#net-big) **MATCH EVENTS**\n\n'
+		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
 		
 		thread.edit(body)
 		data = site, t1, t2, id, body, teamsDone
@@ -403,13 +424,13 @@ def createMatchInfo(team1,team2):
 		
 		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
-		body += '[](//#stream-big) **STREAMS**\n\n'
+		body += '[](#icon-stream-big) **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
 		body += '[Reddit comments stream](LINK-TO-REDDIT-STREAM-HERE)\n\n---------\n\n'
-		body += '[](//#notes-big) ' 
+		body += '[](#icon-notes-big) ' 
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
-		body += '\n\n------------\n\n[](//#net-big) **MATCH EVENTS**\n\n'
+		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
 		
 		logging.info("Provided info for %s vs %s", t1, t2)
 		print "Provided info for " + t1 + " vs " + t2
@@ -465,7 +486,7 @@ def checkAndCreate():
 			if threadStatus == 1: # not found
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 
-
+				
 # update score, scorers
 def updateScore(matchID, t1, t2):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
@@ -490,21 +511,25 @@ def updateScore(matchID, t1, t2):
 		
 	text = '**' + t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	
+	left = ''
 	if leftScorers != []:
-		text += "*" + t1 + " scorers: "
+		left += "*" + t1 + " scorers: "
 		for scorer in leftScorers:
 			scorer.replace('&nbsp;',' ')
-			text += scorer + ", "
-		text = text[0:-2] + "*\n\n"
+			left += scorer + ", "
+		left = left[0:-2] + "*"
 		
+	right = ''
 	if rightScorers != []:
-		text += "*" + t2 + " scorers: "
+		right += "*" + t2 + " scorers: "
 		for scorer in rightScorers:
 			scorer.replace('&nbsp;',' ')
-			text += scorer + ", "
-		text = text[0:-2] + "*"
+			right += scorer + ", "
+		right = right[0:-2] + "*"
 		
-	return text
+	text += left + '\n\n' + right
+		
+	return text,left
 		
 # update all current threads			
 def updateThreads():
@@ -523,7 +548,7 @@ def updateThreads():
 			lineupIndex = body.index('**LINE-UPS**')
 			bodyTilThen = body[venueIndex:lineupIndex]
 			newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
-			newbody += '\n\n------------\n\n[](//#net-big) **MATCH EVENTS**\n\n'
+			newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
 			teamsDone = (team1Start[0]!="TBA") and (team1Sub[0]!="TBA") and (team2Start[0]!="TBA") and (team2Sub[0]!="TBA")
 		else:
 			eventsIndex = body.index('**MATCH EVENTS**')
@@ -531,10 +556,10 @@ def updateThreads():
 			newbody +=  '**MATCH EVENTS**\n\n'
 			
 		# update scorelines
-		score = updateScore(matchID,team1,team2)
+		score,left = updateScore(matchID,team1,team2)
 		newbody = score + '\n\n--------\n\n' + newbody
 		
-		events = grabEvents(matchID)
+		events = grabEvents(matchID,left)
 		newbody += '\n\n' + events
 
 		# save data
