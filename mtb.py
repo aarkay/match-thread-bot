@@ -4,8 +4,6 @@ from time import sleep
 
 # TO DO: 
 # more stream sources
-# add score to goal updates
-# manual inputs (delete thread)
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
 # more robust handling of errors
 
@@ -24,11 +22,11 @@ activeThreads = []
 def login():
 	try:
 		f = open('login.txt')
-		username,password,subreddit,user_agent = f.readline().split(':',4)
+		admin,username,password,subreddit,user_agent = f.readline().split(':',5)
 		r = praw.Reddit(user_agent)
 		r.login(username,password)
 		f.close()
-		return r,subreddit
+		return r,subreddit,admin
 	except:
 		print "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
 		sleep(10)
@@ -179,14 +177,18 @@ def writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
 	body += ", ".join(x for x in team2Sub) + "."
 	return body
 	
-def findScoreSide(time,left):
+def findScoreSide(time,left,right):
 	leftTimes = [int(x) for x in re.findall(r'\b\d+\b', left)]
+	rightTimes = [int(x) for x in re.findall(r'\b\d+\b', right)]
+	if time in leftTimes and time in rightTimes:
+		return 'none'
 	if time in leftTimes:
 		return 'left'
-	else:
+	if time in rightTimes:
 		return 'right'
+	return 'none'
 
-def grabEvents(matchID,left):
+def grabEvents(matchID,left,right):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
 	req = urllib2.Request(lineAddress, headers=hdr)
 	lineWebsite = urllib2.urlopen(req)
@@ -201,29 +203,37 @@ def grabEvents(matchID,left):
 	
 	L = 0
 	R = 0
+	updatescores = True
 	
 	# goal.com's full commentary tagged as "action" - ignore these
 	# will only report goals (+ penalties, own goals), yellows, reds, subs - not sure what else goal.com reports
+	supportedEvents = ['goal','penalty-goal','own-goal','yellow-card','red-card','yellow-red','substitution']
 	for text in events:
 		tag = re.findall('(.*?)"',text,re.DOTALL)[0]
-		if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal' or tag.lower() == 'yellow-card' or tag.lower() == 'red-card' or tag.lower() == 'yellow-red' or tag.lower() == 'substitution':
+		if tag.lower() in supportedEvents:
 			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
 			time = time[:-1] # goal.com leaves a space at the end
 			info = '**' + time + '** '
 			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal':
 				info += '[](#icon-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
-				if findScoreSide(int(time.split("'")[0]),left) == 'left':
+				if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 					L += 1
-				else:
+				else if findScoreSide(int(time.split("'")[0]),left,right) == 'right':
 					R += 1
-				info += ' **' + str(L) + '-' + str(R) + '**'
+				else:
+					updatescores = False
+				if updatescores:
+					info += ' **' + str(L) + '-' + str(R) + '**'
 			if tag.lower() == 'own-goal':
 				info += '[](#icon-red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
-				if findScoreSide(int(time.split("'")[0]),left) == 'left':
+				if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 					L += 1
-				else:
+				else if findScoreSide(int(time.split("'")[0]),left,right) == 'right':
 					R += 1
-				info += ' **' + str(L) + '-' + str(R) + '**'
+				else:
+					updatescores = False
+				if updatescores:
+					info += ' **' + str(L) + '-' + str(R) + '**'
 			if tag.lower() == 'yellow-card':
 				info += '[](#icon-yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
@@ -294,37 +304,6 @@ def findFirstrowID(team1,team2):
 	else:
 		logging.info("Couldn't find firstrow streams for %s vs %s", team1,team2)
 		return 'no match'
-
-# nutjob is dead! Remove this method if it's not coming back		
-def findNutjobID(team1,team2):
-	t1 = team1.split()
-	t2 = team2.split()
-	linkList = []
-	fixAddress = "http://nutjob.eu/schedule.html"
-	req = urllib2.Request(fixAddress, headers=hdr)
-	try:
-		fixWebsite = urllib2.urlopen(req)
-	except urllib2.HTTPError, e:
-		logging.error("Couldn't access nutjob streams for %s vs %s", team1,team2)
-		return 'no match'
-	fix_html = fixWebsite.read()
-	
-	for word in t1:
-		links = re.findall('<p>.*?' + word + '.*?<a href="(.*?)"',fix_html)
-		for link in links:	
-			linkList.append(link)
-	for word in t2:
-		links = re.findall('<p>.*?' + word + '.*?<a href="(.*?)"',fix_html)
-		for link in links:
-			linkList.append(link)
-
-	counts = Counter(linkList)
-	if counts.most_common(1) != []:
-		mode = counts.most_common(1)[0]
-		return mode[0]
-	else:
-		logging.info("Couldn't find nutjob streams for %s vs %s", team1,team2)
-		return 'no match'
 	
 def findVideoStreams(team1,team2):
 	text = "**Got a stream? Post it here!**\n\n"
@@ -337,8 +316,6 @@ def findVideoStreams(team1,team2):
 		text += '[wiziwig](http://www.wiziwig.tv' + wiziID + ')\n\n'
 	if firstrowID != 'no match':
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
-	#if nutjobID != 'no match':
-	#	text += '[nutjob](http://nutjob.eu/' + nutjobID + ')\n\n'
 
 	text += "-------------------------\n\n"
 	text += "*Hi, I'm a match thread bot. [Click here](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/) to learn how to use me, or to check status updates on if/when I'll be down for maintenance.*"
@@ -438,6 +415,24 @@ def createMatchInfo(team1,team2):
 	else:
 		return 1,''
 
+# delete a thread (on admin request)
+def deleteThread(id):
+	try:
+		thread = r.get_submission(submission_id = id)
+		thread.delete()
+		name = ''
+		for data in activeThreads:
+			matchID,team1,team2,thread_id,body,teamsDone = data
+			if thread_id == id:
+				name = team1 + ' vs ' + team2
+				activeThreads.remove(matchID,team1,team2,thread_id,body,teamsDone)
+				logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
+				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
+				saveData()
+		return name
+	except:
+		return ''
+		
 # default attempt to find teams: split input in half, left vs right	
 def firstTryTeams(msg):
 	t = msg.split()
@@ -465,7 +460,7 @@ def checkAndCreate():
 					teams = attempt
 			threadStatus,thread_id = createNewThread(teams[0],teams[1])
 			if threadStatus == 0: # thread created successfully
-				msg.reply("[Here](http://www.reddit.com/r/" + subreddit + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!")
+				msg.reply("[Here](http://www.reddit.com/r/" + subreddit + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + admin + "&subject=deletion%20request&message=" + thread_id + ") to request that the thread be deleted. This probably means that I can't find the right match - sorry!*")
 			if threadStatus == 1: # not found
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 			if threadStatus == 2: # before kickoff
@@ -485,7 +480,15 @@ def checkAndCreate():
 				msg.reply("Below is the information for the match you've requested. There are gaps left for you to add in a link to a comment containing stream links and a link to the reddit-stream for the thread; if you don't want to include these, be sure to remove those lines.\n\nIf you're using [RES](http://redditenhancementsuite.com/), you can use the 'source' button below this message to copy/paste the exact formatting code. If you aren't, you'll have to add the formatting yourself.\n\n----------\n\n" + text)
 			if threadStatus == 1: # not found
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
-
+		if msg.subject.lower() == 'delete':
+			if msg.author.name == admin:
+				name = deleteThread(msg.body)
+				if name != ''
+					msg.reply("Deleted " + name)
+				else:
+					msg.reply("Thread not found")
+			else:
+				msg.reply("Admin feature only. Authentication failed - check readme and login.txt details.")
 				
 # update score, scorers
 def updateScore(matchID, t1, t2):
@@ -529,7 +532,7 @@ def updateScore(matchID, t1, t2):
 		
 	text += left + '\n\n' + right
 		
-	return text,left
+	return text,left,right
 		
 # update all current threads			
 def updateThreads():
@@ -556,10 +559,10 @@ def updateThreads():
 			newbody +=  '**MATCH EVENTS**\n\n'
 			
 		# update scorelines
-		score,left = updateScore(matchID,team1,team2)
+		score,left,right = updateScore(matchID,team1,team2)
 		newbody = score + '\n\n--------\n\n' + newbody
 		
-		events = grabEvents(matchID,left)
+		events = grabEvents(matchID,left,right)
 		newbody += '\n\n' + events
 
 		# save data
@@ -577,14 +580,14 @@ def updateThreads():
 			
 	for getRid in toRemove:
 		activeThreads.remove(getRid)
-		logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
+		logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), getRid[1], getRid[2])
 		print "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2]
 		saveData()
 		
 logging.basicConfig(filename='log.log',level=logging.INFO,format='%(asctime)s %(message)s')
 logging.info("[STARTUP]")
 
-r,subreddit = login()
+r,subreddit,admin = login()
 readData()
 
 running = True

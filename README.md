@@ -7,12 +7,14 @@ Match thread creation bot for football/soccer matches on reddit. Developed using
 login.txt
 -----
 
-To run this bot, you must have a file called 'login.txt' in the same directory. This file should contain a single line with four pieces of information: your bot's username, the bot's password, the subreddit that the bot will be used in, and the bot's user agent. Each of these should be separated by a single colon. For example, if I wanted to use this code to allow a bot called 'TestThreadBot' with the password 'ThisIsATestPassword' to post to the subreddit 'SubForTesting', the login.txt file would look like this:
+To run this bot, you must have a file called 'login.txt' in the same directory. This file should contain a single line with five pieces of information: your own username, your bot's username, the bot's password, the subreddit that the bot will be used in, and the bot's user agent. Each of these should be separated by a single colon. For example, if /u/iliketotestthings wanted to use this code to allow a bot called 'TestThreadBot' with the password 'ThisIsATestPassword' to post to the subreddit 'SubForTesting', the login.txt file would look like this:
 
-    TestThreadBot:ThisIsATestPassword:SubForTesting:TestThreadBot v0.1 by /u/iliketotestthings
+    iliketotestthings:TestThreadBot:ThisIsATestPassword:SubForTesting:TestThreadBot v0.1 by /u/iliketotestthings
 
     
-The fourth detail, the bot's user agent, should be provided as per [reddit's API rules](https://github.com/reddit/reddit/wiki/API). Note that reddit asks new accounts to complete a captcha if they want to post anything and I haven't put anything in the code to get around that, so you'll need to figure out a way to get your bot account a lot of karma if you want it to work autonomously.
+Your own username is used to give you access to the delete function, where you (as the bot-runner) can send your bot a message with 'delete' in the title and the thread ID (e.g. '2ftzab') in the message body, and the bot will delete that thread. This can be used for accidental or incorrect match thread creations - users of the bot will be given an option to send you a deletion request with the thread ID provided if the bot has made a mistake.
+
+The fifth detail, the bot's user agent, should be provided as per [reddit's API rules](https://github.com/reddit/reddit/wiki/API). Note that reddit asks new accounts to complete a captcha if they want to post anything and I haven't put anything in the code to get around that, so you'll need to figure out a way to get your bot account a lot of karma if you want it to work autonomously.
 
 mtb.py
 -----
