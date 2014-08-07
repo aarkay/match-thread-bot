@@ -218,7 +218,7 @@ def grabEvents(matchID,left,right):
 				info += '[](#icon-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
 				if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 					L += 1
-				else if findScoreSide(int(time.split("'")[0]),left,right) == 'right':
+				elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
 					R += 1
 				else:
 					updatescores = False
@@ -228,7 +228,7 @@ def grabEvents(matchID,left,right):
 				info += '[](#icon-red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
 				if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 					L += 1
-				else if findScoreSide(int(time.split("'")[0]),left,right) == 'right':
+				elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
 					R += 1
 				else:
 					updatescores = False
@@ -420,16 +420,15 @@ def deleteThread(id):
 	try:
 		thread = r.get_submission(submission_id = id)
 		thread.delete()
-		name = ''
 		for data in activeThreads:
 			matchID,team1,team2,thread_id,body,teamsDone = data
 			if thread_id == id:
-				name = team1 + ' vs ' + team2
-				activeThreads.remove(matchID,team1,team2,thread_id,body,teamsDone)
+				activeThreads.remove(data)
 				logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
 				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
 				saveData()
-		return name
+				return team1 + ' vs ' + team2
+		return ''
 	except:
 		return ''
 		
@@ -483,7 +482,7 @@ def checkAndCreate():
 		if msg.subject.lower() == 'delete':
 			if msg.author.name == admin:
 				name = deleteThread(msg.body)
-				if name != ''
+				if name != '':
 					msg.reply("Deleted " + name)
 				else:
 					msg.reply("Thread not found")
@@ -584,10 +583,13 @@ def updateThreads():
 		print "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2]
 		saveData()
 		
-logging.basicConfig(filename='log.log',level=logging.INFO,format='%(asctime)s %(message)s')
-logging.info("[STARTUP]")
 
 r,subreddit,admin = login()
+
+logging.basicConfig(filename='log.log',level=logging.INFO,format='%(asctime)s %(message)s')
+logging.info("[STARTUP]")
+print "[STARTUP]"
+
 readData()
 
 running = True
@@ -598,6 +600,7 @@ while running:
 		sleep(60)
 	except KeyboardInterrupt:
 		logging.info("[MANUAL SHUTDOWN]")
+		print "[MANUAL SHUTDOWN]"
 		running = False
 	except praw.errors.APIException:
 		print "API error, check log file"
