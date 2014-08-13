@@ -465,7 +465,7 @@ def checkAndCreate():
 				attempt = msg.body.split(delim,2)
 				if attempt[0] != msg.body:
 					teams = attempt
-			threadStatus,thread_id = createNewThread(teams[0],teams[1],message.author.name)
+			threadStatus,thread_id = createNewThread(teams[0],teams[1],msg.author.name)
 			if threadStatus == 0: # thread created successfully
 				msg.reply("[Here](http://www.reddit.com/r/" + subreddit + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*")
 			if threadStatus == 1: # not found
