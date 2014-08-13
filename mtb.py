@@ -26,7 +26,7 @@ def login():
 		r = praw.Reddit(user_agent)
 		r.login(username,password)
 		f.close()
-		return r,subreddit,admin
+		return r,subreddit,admin,username
 	except:
 		print "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
 		sleep(10)
@@ -36,8 +36,8 @@ def saveData():
 	f = open('active_threads.txt', 'w+')
 	s = ''
 	for data in activeThreads:
-		matchID,t1,t2,thread_id,body,teamsDone = data
-		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + body + '####' + str(teamsDone) + '&&&&'
+		matchID,t1,t2,thread_id,body,reqr = data
+		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + body + '####' + reqr + '&&&&'
 	s = s[0:-4] # take off last &&&&
 	f.write(s.encode('utf8'))
 	f.close()
@@ -49,10 +49,9 @@ def readData():
 	info = s.split('&&&&')
 	if info[0] != '':
 		for d in info:
-			[matchID,t1,t2,thread_id,body,teamsDone] = d.split('####')
+			[matchID,t1,t2,thread_id,body,reqr] = d.split('####')
 			matchID = matchID.encode('utf8') # get rid of weird character at start - got to be a better way to do this...
-			teamsDone = teamsDone == 'True' # convert to boolean
-			data = matchID, t1, t2, thread_id, body, teamsDone
+			data = matchID, t1, t2, thread_id, body, reqr
 			activeThreads.append(data)
 			logging.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
 			print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2
@@ -120,14 +119,14 @@ def getLineUps(matchID):
 		team2Sub = ["TBA"]
 		return team1Start,team1Sub,team2Start,team2Sub
 
-# check if match is finished - search for "FT"
-def isMatchComplete(matchID):
+# get current match time/status
+def getStatus(matchID):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
 	req = urllib2.Request(lineAddress, headers=hdr)
 	lineWebsite = urllib2.urlopen(req)
 	line_html = lineWebsite.read()
 	status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
-	return status == 'FT'			
+	return status			
 	
 # get venue, ref, lineups, etc from goal.com	
 def getGDCinfo(matchID):
@@ -146,7 +145,7 @@ def getGDCinfo(matchID):
 	if team2fix[-1]==' ':
 		team2fix = team2fix[0:-1]	
 	
-	matchDone = isMatchComplete(matchID)
+	status = getStatus(matchID)
 	ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
 	
 	venue = re.findall('<div class="match-header .*?</li>.*?</li>.*? (.*?)</li>', line_html, re.DOTALL)
@@ -163,7 +162,7 @@ def getGDCinfo(matchID):
 		
 	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 		
-	return (team1fix,team2fix,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,matchDone)
+	return (team1fix,team2fix,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,status)
 	
 def writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
 	body += '**LINE-UPS**\n\n**' + t1 + '**\n\n'
@@ -214,7 +213,7 @@ def grabEvents(matchID,left,right):
 			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
 			time = time[:-1] # goal.com leaves a space at the end
 			info = '**' + time + '** '
-			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal':
+			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
 				info += '[](#icon-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
 				if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 					L += 1
@@ -224,16 +223,8 @@ def grabEvents(matchID,left,right):
 					updatescores = False
 				if updatescores:
 					info += ' **' + str(L) + '-' + str(R) + '**'
-			if tag.lower() == 'own-goal':
+			if tag.lower() == 'missed-penalty':
 				info += '[](#icon-red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
-				if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
-					L += 1
-				elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
-					R += 1
-				else:
-					updatescores = False
-				if updatescores:
-					info += ' **' + str(L) + '-' + str(R) + '**'
 			if tag.lower() == 'yellow-card':
 				info += '[](#icon-yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
@@ -310,7 +301,6 @@ def findVideoStreams(team1,team2):
 	
 	wiziID = findWiziwigID(team1,team2)
 	firstrowID = findFirstrowID(team1,team2)
-	#nutjobID = findNutjobID(team1,team2)
 	
 	if wiziID != 'no match':
 		text += '[wiziwig](http://www.wiziwig.tv' + wiziID + ')\n\n'
@@ -338,19 +328,19 @@ def getTimes(ko):
 	return (hour_i,min_i,now)
 	
 # create a new thread using provided teams	
-def createNewThread(team1,team2):	
+def createNewThread(team1,team2,reqr):	
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
-		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, matchDone = getGDCinfo(site)
+		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
 		
 		# don't create a thread if the bot already made it
 		for d in activeThreads:
-			matchID_at,t1_at,t2_at,id_at,body_at,teamsDone_at = d
+			matchID_at,t1_at,t2_at,id_at,body_at,reqr_at = d
 			if t1 == t1_at:
 				return 4,id_at
 		
 		# don't create a thread if the match is done (probably found the wrong match)
-		if matchDone == True:
+		if status == 'FT':
 			return 3,''
 		
 		# don't create a thread if the match hasn't started yet
@@ -359,8 +349,6 @@ def createNewThread(team1,team2):
 			return 2,''
 		if (now.hour == hour_i) and (now.minute < min_i):
 			return 2,''
-			
-		teamsDone = (team1Start[0]!="TBA") and (team1Sub[0]!="TBA") and (team2Start[0]!="TBA") and (team2Sub[0]!="TBA")
 		
 		vidcomment = findVideoStreams(team1,team2)
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
@@ -371,7 +359,7 @@ def createNewThread(team1,team2):
 		id = short[15:].encode("utf8")
 		redditstream = 'http://www.reddit-stream.com/comments/' + id 
 		
-		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
+		body = '**' + status + ': ' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += '[](#icon-stream-big) **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
@@ -382,7 +370,7 @@ def createNewThread(team1,team2):
 		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
 		
 		thread.edit(body)
-		data = site, t1, t2, id, body, teamsDone
+		data = site, t1, t2, id, body, reqr
 		activeThreads.append(data)
 		saveData()
 		logging.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
@@ -395,11 +383,9 @@ def createNewThread(team1,team2):
 def createMatchInfo(team1,team2):
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
-		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, matchDone = getGDCinfo(site)
-			
-		teamsDone = (team1Start[0]!="TBA") and (team1Sub[0]!="TBA") and (team2Start[0]!="TBA") and (team2Sub[0]!="TBA")
+		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
 		
-		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
+		body = '**' + status + ': ' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += '[](#icon-stream-big) **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
@@ -419,10 +405,10 @@ def createMatchInfo(team1,team2):
 def deleteThread(id):
 	try:
 		thread = r.get_submission(submission_id = id)
-		thread.delete()
 		for data in activeThreads:
-			matchID,team1,team2,thread_id,body,teamsDone = data
+			matchID,team1,team2,thread_id,body,reqr = data
 			if thread_id == id:
+				thread.delete()
 				activeThreads.remove(data)
 				logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
 				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
@@ -431,6 +417,28 @@ def deleteThread(id):
 		return ''
 	except:
 		return ''
+		
+# remove incorrectly made thread if requester asks within 5 minutes of creation
+def removeWrongThread(id,req):
+	try:
+		thread = r.get_submission(submission_id = id)
+		dif = datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(thread.created_utc)
+		for data in activeThreads:
+			matchID,team1,team2,thread_id,body,reqr = data
+			if thread_id == id:
+				if reqr != req:
+					return 'req'
+				if dif.days != 0 or dif.seconds > 300:
+					return 'time'
+				thread.delete()
+				activeThreads.remove(data)
+				logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
+				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
+				saveData()
+				return team1 + ' vs ' + team2
+			return 'thread'
+	except:
+		return 'thread'
 		
 # default attempt to find teams: split input in half, left vs right	
 def firstTryTeams(msg):
@@ -457,9 +465,9 @@ def checkAndCreate():
 				attempt = msg.body.split(delim,2)
 				if attempt[0] != msg.body:
 					teams = attempt
-			threadStatus,thread_id = createNewThread(teams[0],teams[1])
+			threadStatus,thread_id = createNewThread(teams[0],teams[1],message.author.name)
 			if threadStatus == 0: # thread created successfully
-				msg.reply("[Here](http://www.reddit.com/r/" + subreddit + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + admin + "&subject=deletion%20request&message=" + thread_id + ") to request that the thread be deleted. This probably means that I can't find the right match - sorry!*")
+				msg.reply("[Here](http://www.reddit.com/r/" + subreddit + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*")
 			if threadStatus == 1: # not found
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 			if threadStatus == 2: # before kickoff
@@ -468,6 +476,7 @@ def checkAndCreate():
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 			if threadStatus == 4: # thread already exists
 				msg.reply("There is already a [match thread](http://www.reddit.com/r/" + subreddit + "/comments/" + thread_id + ") for that game. Join the discussion there!")	
+		
 		if msg.subject.lower() == 'match info':
 			teams = firstTryTeams(msg.body)
 			for delim in delims:
@@ -479,6 +488,7 @@ def checkAndCreate():
 				msg.reply("Below is the information for the match you've requested. There are gaps left for you to add in a link to a comment containing stream links and a link to the reddit-stream for the thread; if you don't want to include these, be sure to remove those lines.\n\nIf you're using [RES](http://redditenhancementsuite.com/), you can use the 'source' button below this message to copy/paste the exact formatting code. If you aren't, you'll have to add the formatting yourself.\n\n----------\n\n" + text)
 			if threadStatus == 1: # not found
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
+		
 		if msg.subject.lower() == 'delete':
 			if msg.author.name == admin:
 				name = deleteThread(msg.body)
@@ -487,7 +497,15 @@ def checkAndCreate():
 				else:
 					msg.reply("Thread not found")
 			else:
-				msg.reply("Admin feature only. Authentication failed - check readme and login.txt details.")
+				message = removeWrongThread(msg.body,msg.author.name)
+				if message == 'thread':
+					msg.reply("Thread not found - please double-check thread ID")
+				elif message == 'time':
+					msg.reply("This thread is more than five minutes old - thread deletion from now is an admin feature only. You can message /u/" + admin + " if you'd still like the thread to be deleted.")
+				elif message == 'req':
+					msg.reply("Username not recognised. Only the thread requester and bot admin have access to this feature.")
+				else:
+					msg.reply("Deleted " + name)
 				
 # update score, scorers
 def updateScore(matchID, t1, t2):
@@ -503,6 +521,9 @@ def updateScore(matchID, t1, t2):
 	line_html = line_html_enc.decode("utf8")
 	leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
 	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
+	time = getStatus(matchID)
+	if time == 'v':
+		time = "0'"
 	
 	split1 = line_html.split('<div class="home"') # [0]:nonsense [1]:scorers
 	split2 = split1[1].split('<div class="away"') # [0]:home scorers [1]:away scorers + nonsense
@@ -510,8 +531,8 @@ def updateScore(matchID, t1, t2):
 	
 	leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
-		
-	text = '**' + t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+	
+	text = '**' + time + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	
 	left = ''
 	if leftScorers != []:
@@ -539,23 +560,17 @@ def updateThreads():
 
 	for data in activeThreads:
 		index = activeThreads.index(data)
-		matchID,team1,team2,thread_id,body,teamsDone = data
+		matchID,team1,team2,thread_id,body,reqr = data
 		thread = r.get_submission(submission_id = thread_id)
 		
 		venueIndex = body.index('**Venue:**')
 		
-		# try to fill out remaining lineups
-		if teamsDone != True:
-			team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
-			lineupIndex = body.index('**LINE-UPS**')
-			bodyTilThen = body[venueIndex:lineupIndex]
-			newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
-			newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
-			teamsDone = (team1Start[0]!="TBA") and (team1Sub[0]!="TBA") and (team2Start[0]!="TBA") and (team2Sub[0]!="TBA")
-		else:
-			eventsIndex = body.index('**MATCH EVENTS**')
-			newbody = body[venueIndex:eventsIndex]
-			newbody +=  '**MATCH EVENTS**\n\n'
+		# update lineups (sometimes goal.com changes/updates them)
+		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
+		lineupIndex = body.index('**LINE-UPS**')
+		bodyTilThen = body[venueIndex:lineupIndex]
+		newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
+		newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
 			
 		# update scorelines
 		score,left,right = updateScore(matchID,team1,team2)
@@ -570,11 +585,11 @@ def updateThreads():
 			print "Making edit to " + team1 + " vs " + team2
 			thread.edit(newbody)
 			saveData()
-		newdata = matchID,team1,team2,thread_id,newbody,teamsDone
+		newdata = matchID,team1,team2,thread_id,newbody,reqr
 		activeThreads[index] = newdata
 		
 		# discard finished matches - search for "FT"
-		if isMatchComplete(matchID):
+		if getStatus(matchID) == 'FT':
 			toRemove.append(newdata)
 			
 	for getRid in toRemove:
@@ -584,7 +599,7 @@ def updateThreads():
 		saveData()
 		
 
-r,subreddit,admin = login()
+r,subreddit,admin,username = login()
 
 logging.basicConfig(filename='log.log',level=logging.INFO,format='%(asctime)s %(message)s')
 logging.info("[STARTUP]")
