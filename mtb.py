@@ -521,6 +521,7 @@ def updateScore(matchID, t1, t2):
 	line_html = line_html_enc.decode("utf8")
 	leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
 	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
+	aggregate = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
 	time = getStatus(matchID)
 	if time == 'v':
 		time = "0'"
@@ -533,6 +534,9 @@ def updateScore(matchID, t1, t2):
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
 	
 	text = '**' + time + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+	
+	if aggregate != '':
+		text += '**_' + aggregate + '_**\n\n'
 	
 	left = ''
 	if leftScorers != []:
