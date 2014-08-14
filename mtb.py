@@ -385,7 +385,7 @@ def createMatchInfo(team1,team2):
 	if site != 'no match':
 		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
 		
-		body = '**' + status + ': ' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
+		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += '[](#icon-stream-big) **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
