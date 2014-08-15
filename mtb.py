@@ -497,12 +497,12 @@ def checkAndCreate():
 				else:
 					msg.reply("Thread not found")
 			else:
-				message = removeWrongThread(msg.body,msg.author.name)
-				if message == 'thread':
+				name = removeWrongThread(msg.body,msg.author.name)
+				if name == 'thread':
 					msg.reply("Thread not found - please double-check thread ID")
-				elif message == 'time':
+				elif name == 'time':
 					msg.reply("This thread is more than five minutes old - thread deletion from now is an admin feature only. You can message /u/" + admin + " if you'd still like the thread to be deleted.")
-				elif message == 'req':
+				elif name == 'req':
 					msg.reply("Username not recognised. Only the thread requester and bot admin have access to this feature.")
 				else:
 					msg.reply("Deleted " + name)
