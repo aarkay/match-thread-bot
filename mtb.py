@@ -3,6 +3,8 @@ from collections import Counter
 from time import sleep
 
 # TO DO: 
+# switch from urllib2 to requests maybe
+# find scorers - maybe search for >(.*?)'< instead (for players w/ no links)
 # more stream sources
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
 # more robust handling of errors
@@ -359,6 +361,9 @@ def createNewThread(team1,team2,reqr):
 		id = short[15:].encode("utf8")
 		redditstream = 'http://www.reddit-stream.com/comments/' + id 
 		
+		if status == 'v':
+			status = "0'"
+		
 		body = '**' + status + ': ' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += '[](#icon-stream-big) **STREAMS**\n\n'
@@ -436,7 +441,7 @@ def removeWrongThread(id,req):
 				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
 				saveData()
 				return team1 + ' vs ' + team2
-			return 'thread'
+		return 'thread'
 	except:
 		return 'thread'
 		
@@ -514,17 +519,12 @@ def updateScore(matchID, t1, t2):
 	lineWebsite = urllib2.urlopen(req)
 	line_html_enc = lineWebsite.read()
 	line_html = line_html_enc.decode("utf8")
-
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	lineWebsite = urllib2.urlopen(lineAddress)
-	line_html_enc = lineWebsite.read()
-	line_html = line_html_enc.decode("utf8")
 	leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
 	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
 	aggregate = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
-	time = getStatus(matchID)
-	if time == 'v':
-		time = "0'"
+	status = getStatus(matchID)
+	if status == 'v':
+		status = "0'"
 	
 	split1 = line_html.split('<div class="home"') # [0]:nonsense [1]:scorers
 	split2 = split1[1].split('<div class="away"') # [0]:home scorers [1]:away scorers + nonsense
@@ -533,7 +533,10 @@ def updateScore(matchID, t1, t2):
 	leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
 	
-	text = '**' + time + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+#	leftScorers = re.findall(">(.*?)'<",split2[0])
+#	rightScorers = re.findall(">(.*?)'<",split3[0])
+	
+	text = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	
 	if aggregate != '':
 		text += '**_' + aggregate + '_**\n\n'
