@@ -342,7 +342,7 @@ def createNewThread(team1,team2,reqr):
 				return 4,id_at
 		
 		# don't create a thread if the match is done (probably found the wrong match)
-		if status == 'FT':
+		if status == 'FT' or status == 'PEN':
 			return 3,''
 		
 		# don't create a thread if the match hasn't started yet
@@ -533,9 +533,6 @@ def updateScore(matchID, t1, t2):
 	leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
 	
-#	leftScorers = re.findall(">(.*?)'<",split2[0])
-#	rightScorers = re.findall(">(.*?)'<",split3[0])
-	
 	text = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	
 	if aggregate != '':
@@ -608,7 +605,7 @@ def updateThreads():
 
 r,subreddit,admin,username = login()
 
-logging.basicConfig(filename='log.log',level=logging.INFO,format='%(asctime)s %(message)s')
+logging.basicConfig(filename='log.log',level=logging.ERROR,format='%(asctime)s %(message)s')
 logging.info("[STARTUP]")
 print "[STARTUP]"
 
