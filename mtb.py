@@ -208,7 +208,7 @@ def grabEvents(matchID,left,right):
 	
 	# goal.com's full commentary tagged as "action" - ignore these
 	# will only report goals (+ penalties, own goals), yellows, reds, subs - not sure what else goal.com reports
-	supportedEvents = ['goal','penalty-goal','own-goal','yellow-card','red-card','yellow-red','substitution']
+	supportedEvents = ['goal','penalty-goal','own-goal','missed-penalty','yellow-card','red-card','yellow-red','substitution']
 	for text in events:
 		tag = re.findall('(.*?)"',text,re.DOTALL)[0]
 		if tag.lower() in supportedEvents:
