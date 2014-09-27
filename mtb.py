@@ -310,7 +310,7 @@ def findVideoStreams(team1,team2):
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
 
 	text += "-------------------------\n\n"
-	text += "*Hi, I'm a match thread bot. [Click here](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/) to learn how to use me, or to check status updates on if/when I'll be down for maintenance.*"
+	text += "[[Request a match thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) | [[Request a thread template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) | [[Current status / bot info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 	
 	return text
 
