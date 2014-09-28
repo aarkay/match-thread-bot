@@ -147,11 +147,11 @@ def getGDCinfo(matchID):
 	if team2fix[-1]==' ':
 		team2fix = team2fix[0:-1]	
 		
-	# hard-coded fix for Stade de Reims weirdness
-	if team1fix == 'Ρεμς':
-		team1fix = 'Stade de Reims'
-	if team2fix == 'Ρεμς':
-		team2fix = 'Stade de Reims'
+	# # hard-coded fix for Stade de Reims weirdness
+	# if team1fix == 'Ρεμς':
+		# team1fix = 'Stade de Reims'
+	# if team2fix == 'Ρεμς':
+		# team2fix = 'Stade de Reims'
 	
 	status = getStatus(matchID)
 	ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
