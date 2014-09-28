@@ -146,6 +146,12 @@ def getGDCinfo(matchID):
 		team1fix = team1fix[0:-1]
 	if team2fix[-1]==' ':
 		team2fix = team2fix[0:-1]	
+		
+	# hard-coded fix for Stade de Reims weirdness
+	if team1fix == 'Ρεμς':
+		team1fix = 'Stade de Reims'
+	if team2fix == 'Ρεμς':
+		team2fix = 'Stade de Reims'
 	
 	status = getStatus(matchID)
 	ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
@@ -372,7 +378,7 @@ def createNewThread(team1,team2,reqr):
 		body += '[](#icon-notes-big) ' 
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
-		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
+		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + '/live-commentary)*\n\n'
 		
 		thread.edit(body)
 		data = site, t1, t2, id, body, reqr
@@ -574,7 +580,7 @@ def updateThreads():
 		lineupIndex = body.index('**LINE-UPS**')
 		bodyTilThen = body[venueIndex:lineupIndex]
 		newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
-		newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
+		newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + '/live-commentary)*\n\n'
 			
 		# update scorelines
 		score,left,right = updateScore(matchID,team1,team2)
@@ -593,7 +599,7 @@ def updateThreads():
 		activeThreads[index] = newdata
 		
 		# discard finished matches - search for "FT"
-		if getStatus(matchID) == 'FT':
+		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'PEN':
 			toRemove.append(newdata)
 			
 	for getRid in toRemove:
