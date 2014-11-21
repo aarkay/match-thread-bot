@@ -382,7 +382,7 @@ def createNewThread(team1,team2,reqr):
 		
 		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
-			body += '*' + msg + '*\n\n'
+			body += '*' + statmsg + '*\n\n'
 		
 		thread.edit(body)
 		data = site, t1, t2, id, body, reqr
@@ -588,7 +588,7 @@ def updateThreads():
 		
 		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
-			body += '*Note: ' + msg + '*\n\n'
+			body += '*Note: ' + statmsg + '*\n\n'
 			
 		# update scorelines
 		score,left,right = updateScore(matchID,team1,team2)
