@@ -59,6 +59,12 @@ def readData():
 			print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2
 	f.close()
 
+def getBotStatus():
+	thread = r.get_submission(submission_id = '22ah8i')
+	status = re.findall('bar-10-(.*?)\)',thread.selftext)
+	msg = re.findall('\| \*(.*?)\*',thread.selftext)
+	return status,msg
+	
 def findGoalSite(team1, team2):
 	# search for each word in each team name in goal.com's fixture list, return most frequent result
 	t1 = team1.split()
@@ -374,6 +380,10 @@ def createNewThread(team1,team2,reqr):
 		
 		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + '/live-commentary)*\n\n'
 		
+		botstat,statmsg = getBotStatus()
+		if botstat != 'green':
+			body += '*' + msg + '*\n\n'
+		
 		thread.edit(body)
 		data = site, t1, t2, id, body, reqr
 		activeThreads.append(data)
@@ -575,6 +585,10 @@ def updateThreads():
 		bodyTilThen = body[venueIndex:lineupIndex]
 		newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
 		newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + '/live-commentary)*\n\n'
+		
+		botstat,statmsg = getBotStatus()
+		if botstat != 'green':
+			body += '*Note: ' + msg + '*\n\n'
 			
 		# update scorelines
 		score,left,right = updateScore(matchID,team1,team2)
