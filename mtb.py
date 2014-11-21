@@ -588,7 +588,7 @@ def updateThreads():
 		
 		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
-			body += '*Note: ' + statmsg + '*\n\n'
+			newbody += '*Note: ' + statmsg + '*\n\n'
 			
 		# update scorelines
 		score,left,right = updateScore(matchID,team1,team2)
