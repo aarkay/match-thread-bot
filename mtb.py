@@ -63,7 +63,7 @@ def getBotStatus():
 	thread = r.get_submission(submission_id = '22ah8i')
 	status = re.findall('bar-10-(.*?)\)',thread.selftext)
 	msg = re.findall('\| \*(.*?)\*',thread.selftext)
-	return status,msg
+	return status[0],msg[0]
 	
 def findGoalSite(team1, team2):
 	# search for each word in each team name in goal.com's fixture list, return most frequent result
