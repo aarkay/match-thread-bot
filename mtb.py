@@ -348,7 +348,7 @@ def createNewThread(team1,team2,reqr):
 				return 4,id_at
 		
 		# don't create a thread if the match is done (probably found the wrong match)
-		if status == 'FT' or status == 'PEN':
+		if status == 'FT' or status == 'PEN' or status == 'AET':
 			return 3,''
 		
 		# don't create a thread if the match hasn't started yet
@@ -533,8 +533,10 @@ def updateScore(matchID, t1, t2):
 	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
 	aggregate = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
 	status = getStatus(matchID)
+	goalUpdating = True
 	if status == 'v':
 		status = "0'"
+		goalUpdating = False
 	
 	split1 = line_html.split('<div class="home"') # [0]:nonsense [1]:scorers
 	split2 = split1[1].split('<div class="away"') # [0]:home scorers [1]:away scorers + nonsense
@@ -544,6 +546,8 @@ def updateScore(matchID, t1, t2):
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
 	
 	text = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+	if not goalUpdating:
+		text += '*Sorry, it looks like goal.com will be providing little to no match updates for this game.*\n\n'
 	
 	if aggregate != '':
 		text += '**_' + aggregate + '_**\n\n'
@@ -607,7 +611,7 @@ def updateThreads():
 		activeThreads[index] = newdata
 		
 		# discard finished matches - search for "FT"
-		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'PEN':
+		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'PEN' or getStatus(matchID) == 'AET':
 			toRemove.append(newdata)
 			
 	for getRid in toRemove:
