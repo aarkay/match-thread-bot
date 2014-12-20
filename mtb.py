@@ -219,9 +219,8 @@ def grabEvents(matchID,left,right):
 		tag = re.findall('(.*?)"',text,re.DOTALL)[0]
 		if tag.lower() in supportedEvents:
 			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
-			time = time[:-1] # goal.com leaves a space at the end
-			info = "**" + time + "'** "
-			event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][:-1]
+			info = "**" + time + "** "
+			event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
 				if tag.lower() == 'goal':
 					event = event[:4] + ' ' + event[4:]
