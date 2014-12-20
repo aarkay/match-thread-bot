@@ -220,9 +220,16 @@ def grabEvents(matchID,left,right):
 		if tag.lower() in supportedEvents:
 			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
 			time = time[:-1] # goal.com leaves a space at the end
-			info = '**' + time + '** '
+			info = "**" + time + "'** "
+			event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][:-1]
 			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
-				info += '[](#icon-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
+				if tag.lower() == 'goal':
+					event = event[:4] + ' ' + event[4:]
+				elif tag.lower() == 'penalty-goal':
+					event = event[:12] + ' ' + event[12:]
+				else:
+					event = event[:8] + ' ' + event[8:]
+				info += '[](#icon-ball) **' + event + '**'
 				if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 					L += 1
 				elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
@@ -232,11 +239,17 @@ def grabEvents(matchID,left,right):
 				if updatescores:
 					info += ' **' + str(L) + '-' + str(R) + '**'
 			if tag.lower() == 'missed-penalty':
-				info += '[](#icon-red-ball) **' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0][0:-1] + '**'
+				event = event[:14] + ' ' + event[14:]
+				info += '[](#icon-red-ball) **' + event + '**'
 			if tag.lower() == 'yellow-card':
-				info += '[](#icon-yellow) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
+				event = event[:11] + ' ' + event[11:]
+				info += '[](#icon-yellow) ' + event
 			if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
-				info += '[](#icon-red) ' + re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
+				if tag.lower() == 'red-card':
+					event = event[:8] + ' ' + event[8:]
+				else:
+					event = event[:10] + ' ' + event[10:]
+				info += '[](#icon-red) ' + event
 			if tag.lower() == 'substitution':
 				info += '[](#icon-sub) Substitution: [](#icon-down)' + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
 				info += ' [](#icon-up)' + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
