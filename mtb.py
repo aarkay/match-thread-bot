@@ -221,6 +221,8 @@ def grabEvents(matchID,left,right):
 			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
 			info = "**" + time + "** "
 			event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
+			if event[-1] == ' ':
+				event = event[:-1]
 			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
 				if tag.lower() == 'goal':
 					event = event[:4] + ' ' + event[4:]
