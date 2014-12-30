@@ -7,7 +7,6 @@ from time import sleep
 # find scorers - maybe search for >(.*?)'< instead (for players w/ no links)
 # more stream sources
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
-# more robust handling of errors
 
 # every minute, check mail, create new threads, update all current threads
 
