@@ -23,11 +23,10 @@ activeThreads = []
 
 def login():
 	try:
-		f = open('login.txt')
-		admin,username,password,subreddit,user_agent = f.readline().split(':',5)
+                with open("login.txt", "r") as f: 
+                        admin,username,password,subreddit,user_agent = f.readline().split(':',5)
 		r = praw.Reddit(user_agent)
 		r.login(username,password)
-		f.close()
 		return r,subreddit,admin,username
 	except:
 		print "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
@@ -35,19 +34,18 @@ def login():
 
 # save activeThreads
 def saveData():
-	f = open('active_threads.txt', 'w+')
 	s = ''
 	for data in activeThreads:
 		matchID,t1,t2,thread_id,body,reqr = data
 		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + body + '####' + reqr + '&&&&'
 	s = s[0:-4] # take off last &&&&
-	f.write(s.encode('utf8'))
-	f.close()
+        with open('active_threads.txt', 'w+') as f:
+                f.write(s.encode('utf8'))
 
 # read saved activeThreads data	
 def readData():
-	f = open('active_threads.txt', 'a+')
-	s = f.read().decode('utf8')
+        with open('active_threads.txt', 'a+') as f:
+                s = f.read().decode('utf8')
 	info = s.split('&&&&')
 	if info[0] != '':
 		for d in info:
@@ -57,7 +55,6 @@ def readData():
 			activeThreads.append(data)
 			logging.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
 			print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2
-	f.close()
 
 def getBotStatus():
 	thread = r.get_submission(submission_id = '22ah8i')
@@ -660,4 +657,4 @@ while running:
 	except Exception:
 		print "Unknown error, check log file"
 		logging.exception('[UNKNOWN ERROR:]')
-		sleep(120) 
+		sleep(120)
