@@ -23,8 +23,8 @@ activeThreads = []
 
 def login():
 	try:
-                with open("login.txt", "r") as f: 
-                        admin,username,password,subreddit,user_agent = f.readline().split(':',5)
+		with open("login.txt", "r") as f: 
+			admin,username,password,subreddit,user_agent = f.readline().split(':',5)
 		r = praw.Reddit(user_agent)
 		r.login(username,password)
 		return r,subreddit,admin,username
@@ -39,13 +39,13 @@ def saveData():
 		matchID,t1,t2,thread_id,body,reqr = data
 		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + body + '####' + reqr + '&&&&'
 	s = s[0:-4] # take off last &&&&
-        with open('active_threads.txt', 'w+') as f:
-                f.write(s.encode('utf8'))
+	with open('active_threads.txt', 'w+') as f:
+		f.write(s.encode('utf8'))
 
 # read saved activeThreads data	
 def readData():
-        with open('active_threads.txt', 'a+') as f:
-                s = f.read().decode('utf8')
+	with open('active_threads.txt', 'a+') as f:
+		s = f.read().decode('utf8')
 	info = s.split('&&&&')
 	if info[0] != '':
 		for d in info:
