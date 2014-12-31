@@ -7,7 +7,6 @@ from time import sleep
 # find scorers - maybe search for >(.*?)'< instead (for players w/ no links)
 # more stream sources
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
-# more robust handling of errors
 
 # every minute, check mail, create new threads, update all current threads
 
@@ -29,7 +28,7 @@ def login():
 		r.login(username,password)
 		f.close()
 		return r,subreddit,admin,username
-	except:
+	except IOError:
 		print "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
 		sleep(10)
 
@@ -444,7 +443,7 @@ def deleteThread(id):
 				saveData()
 				return team1 + ' vs ' + team2
 		return ''
-	except:
+	except Exception:
 		return ''
 		
 # remove incorrectly made thread if requester asks within 5 minutes of creation
@@ -466,7 +465,7 @@ def removeWrongThread(id,req):
 				saveData()
 				return team1 + ' vs ' + team2
 		return 'thread'
-	except:
+	except Exception:
 		return 'thread'
 		
 # default attempt to find teams: split input in half, left vs right	
@@ -657,7 +656,7 @@ while running:
 		print "API error, check log file"
 		logging.exception("[API ERROR:]")
 		sleep(120) 
-	except Exception:
+	except Exception as e:
 		print "Unknown error, check log file"
-		logging.exception('[UNKNOWN ERROR:]')
+		logging.exception(e.msg + " at line " + e.line.lineno)
 		sleep(120) 
