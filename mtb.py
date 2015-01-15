@@ -657,8 +657,8 @@ def updateThreads():
 			
 	for getRid in toRemove:
 		activeThreads.remove(getRid)
-		logger.info("Active threads: %i - removed %s vs %s", len(activeThreads), getRid[1], getRid[2])
-		print "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2]
+		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), getRid[1], getRid[2], getRid[5])
+		print "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2] + " (/r/" + getRid[5] + ")"
 		saveData()
 		
 
