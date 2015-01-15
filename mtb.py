@@ -4,7 +4,7 @@ from time import sleep
 
 # TO DO: 
 # x subreddit requests (__ vs __ for ___)
-# x remove useless info from activethreads
+# fix penalties detection
 # x date logging
 # stream sources
 # use goal.com to bypass thread request
@@ -376,7 +376,7 @@ def createNewThread(team1,team2,reqr,sub):
 		# don't create a thread if the bot already made it
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
-			if t1 == t1_at:
+			if t1 == t1_at and sub == sub_at:
 				return 4,id_at
 		
 		# don't create a thread if the match is done (probably found the wrong match)
