@@ -282,11 +282,11 @@ def findWiziwigID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<td class="home">.*?>.*?' + word + '.*?\n.*?\n.*?\n.*?broadcast" href="(.*?)"', fix_html)
-		for link in links:	
+		links = re.findall('<td class="home">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
+		for link in links:
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<td class="away">.*?>.*?' + word + '.*?\n.*?broadcast" href="(.*?)"', fix_html)
+		links = re.findall('<td class="away">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
 		for link in links:
 			linkList.append(link)
 
@@ -302,7 +302,7 @@ def findFirstrowID(team1,team2):
 	t1 = team1.split()
 	t2 = team2.split()
 	linkList = []
-	fixAddress = "http://gofirstrowus.eu/"
+	fixAddress = "http://ifirstrowus.eu/"
 	req = urllib2.Request(fixAddress, headers=hdr)
 	try:
 		fixWebsite = urllib2.urlopen(req)
@@ -312,11 +312,11 @@ def findFirstrowID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?\n.*?Link 1'href='(.*?)'",fix_html)
+		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
 		for link in links:	
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?\n.*?Link 1'href='(.*?)'",fix_html)
+		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
 		for link in links:
 			linkList.append(link)
 
@@ -327,17 +327,50 @@ def findFirstrowID(team1,team2):
 	else:
 		logger.info("Couldn't find firstrow streams for %s vs %s", team1,team2)
 		return 'no match'
+		
+def findLiveFootballID(team1,team2):
+	t1 = team1.split()
+	t2 = team2.split()
+	linkList = []
+	fixAddress = "http://livefootballvideo.com/"
+	req = urllib2.Request(fixAddress, headers=hdr)
+	try:
+		fixWebsite = urllib2.urlopen(req)
+	except urllib2.HTTPError, e:
+		logger.error("Couldn't access LiveFootballVideo streams for %s vs %s", team1,team2)
+		return 'no match'
+	fix_html = fixWebsite.read()
+	
+	for word in t1:
+		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
+		for link in links:	
+			linkList.append(link)
+	for word in t2:
+		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
+		for link in links:
+			linkList.append(link)
+
+	counts = Counter(linkList)
+	if counts.most_common(1) != []:
+		mode = counts.most_common(1)[0]
+		return mode[0]
+	else:
+		logger.info("Couldn't find LiveFootballVideo streams for %s vs %s", team1,team2)
+		return 'no match'
 	
 def findVideoStreams(team1,team2):
 	text = "**Got a stream? Post it here!**\n\n"
 	
 	wiziID = findWiziwigID(team1,team2)
 	firstrowID = findFirstrowID(team1,team2)
+	liveFootballID = findLiveFootballID(team1,team2)
 	
 	if wiziID != 'no match':
-		text += '[wiziwig](http://www.wiziwig.tv' + wiziID + ')\n\n'
+		text += '[wiziwig](http://www.wiziwig.sx/' + wiziID + ')\n\n'
 	if firstrowID != 'no match':
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
+	if liveFootballID != 'no match':
+		text += '[LiveFootballVideo](' + liveFootballID + ')\n\n'
 
 	text += "^_____________________________________________________________________\n\n"
 	text += "[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
@@ -419,6 +452,7 @@ def createNewThread(team1,team2,reqr,sub):
 			body += '*' + statmsg + '*\n\n'
 		
 		thread.edit(body)
+		sleep(30)
 		data = site, t1, t2, id, reqr, sub
 		activeThreads.append(data)
 		saveData()
@@ -682,7 +716,6 @@ running = True
 while running:
 	try:
 		checkAndCreate()
-		sleep(10)
 		updateThreads()
 		sleep(60)
 	except KeyboardInterrupt:
