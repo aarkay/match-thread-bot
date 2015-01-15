@@ -1,11 +1,19 @@
-import praw,urllib2,cookielib,re,logging,datetime
+import praw,urllib2,cookielib,re,logging,logging.handlers,datetime
 from collections import Counter
 from time import sleep
 
 # TO DO: 
+# x subreddit requests (__ vs __ for ___)
+# x remove useless info from activethreads
+# x date logging
+# stream sources
+# use goal.com to bypass thread request
+# python 3
+#  print(" ")
+#  urllib2 to urllib
+#  cookielib to http.cookiejar
+#  s = f.read().decode('utf8') line not needed? python 3 decodes automatically
 # switch from urllib2 to requests maybe
-# find scorers - maybe search for >(.*?)'< instead (for players w/ no links)
-# more stream sources
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
 # more robust handling of errors
 
@@ -38,8 +46,8 @@ def saveData():
 	f = open('active_threads.txt', 'w+')
 	s = ''
 	for data in activeThreads:
-		matchID,t1,t2,thread_id,body,reqr = data
-		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + body + '####' + reqr + '&&&&'
+		matchID,t1,t2,thread_id,reqr = data
+		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + reqr + '&&&&'
 	s = s[0:-4] # take off last &&&&
 	f.write(s.encode('utf8'))
 	f.close()
@@ -51,11 +59,11 @@ def readData():
 	info = s.split('&&&&')
 	if info[0] != '':
 		for d in info:
-			[matchID,t1,t2,thread_id,body,reqr] = d.split('####')
+			[matchID,t1,t2,thread_id,reqr] = d.split('####')
 			matchID = matchID.encode('utf8') # get rid of weird character at start - got to be a better way to do this...
-			data = matchID, t1, t2, thread_id, body, reqr
+			data = matchID, t1, t2, thread_id, reqr
 			activeThreads.append(data)
-			logging.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
+			logger.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
 			print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2
 	f.close()
 
@@ -219,6 +227,8 @@ def grabEvents(matchID,left,right):
 		tag = re.findall('(.*?)"',text,re.DOTALL)[0]
 		if tag.lower() in supportedEvents:
 			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
+			if time[-1] == ' ':
+				time = time[:-1]
 			info = "**" + time + "** "
 			event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 			if event[-1] == ' ':
@@ -262,12 +272,12 @@ def findWiziwigID(team1,team2):
 	t1 = team1.split()
 	t2 = team2.split()
 	linkList = []
-	fixAddress = "http://www.wiziwig.tv/competition.php?part=sports&discipline=football"
+	fixAddress = "http://www.wiziwig.sx/competition.php?part=sports&discipline=football"
 	req = urllib2.Request(fixAddress, headers=hdr)
 	try:
 		fixWebsite = urllib2.urlopen(req)
 	except urllib2.HTTPError, e:
-		logging.error("Couldn't access wiziwig streams for %s vs %s", team1,team2)
+		logger.error("Couldn't access wiziwig streams for %s vs %s", team1,team2)
 		return 'no match'
 	fix_html = fixWebsite.read()
 	
@@ -285,7 +295,7 @@ def findWiziwigID(team1,team2):
 		mode = counts.most_common(1)[0]
 		return mode[0]
 	else:
-		logging.info("Couldn't find wiziwig streams for %s vs %s", team1,team2)
+		logger.info("Couldn't find wiziwig streams for %s vs %s", team1,team2)
 		return 'no match'
 		
 def findFirstrowID(team1,team2):
@@ -297,7 +307,7 @@ def findFirstrowID(team1,team2):
 	try:
 		fixWebsite = urllib2.urlopen(req)
 	except urllib2.HTTPError, e:
-		logging.error("Couldn't access firstrow streams for %s vs %s", team1,team2)
+		logger.error("Couldn't access firstrow streams for %s vs %s", team1,team2)
 		return 'no match'
 	fix_html = fixWebsite.read()
 	
@@ -315,7 +325,7 @@ def findFirstrowID(team1,team2):
 		mode = counts.most_common(1)[0]
 		return mode[0]
 	else:
-		logging.info("Couldn't find firstrow streams for %s vs %s", team1,team2)
+		logger.info("Couldn't find firstrow streams for %s vs %s", team1,team2)
 		return 'no match'
 	
 def findVideoStreams(team1,team2):
@@ -350,14 +360,14 @@ def getTimes(ko):
 	return (hour_i,min_i,now)
 	
 # create a new thread using provided teams	
-def createNewThread(team1,team2,reqr):	
+def createNewThread(team1,team2,reqr,sub):	
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
 		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
 		
 		# don't create a thread if the bot already made it
 		for d in activeThreads:
-			matchID_at,t1_at,t2_at,id_at,body_at,reqr_at = d
+			matchID_at,t1_at,t2_at,id_at,reqr_at = d
 			if t1 == t1_at:
 				return 4,id_at
 		
@@ -374,7 +384,7 @@ def createNewThread(team1,team2,reqr):
 		
 		vidcomment = findVideoStreams(team1,team2)
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
-		thread = r.submit(subreddit,title,text='Updates soon')
+		thread = r.submit(sub,title,text='Updates soon')
 		vidlink = thread.add_comment(vidcomment)
 		
 		short = thread.short_link
@@ -399,10 +409,10 @@ def createNewThread(team1,team2,reqr):
 			body += '*' + statmsg + '*\n\n'
 		
 		thread.edit(body)
-		data = site, t1, t2, id, body, reqr
+		data = site, t1, t2, id, reqr
 		activeThreads.append(data)
 		saveData()
-		logging.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
+		logger.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
 		print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2
 		return 0,id
 	else:
@@ -424,7 +434,7 @@ def createMatchInfo(team1,team2):
 		
 		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
 		
-		logging.info("Provided info for %s vs %s", t1, t2)
+		logger.info("Provided info for %s vs %s", t1, t2)
 		print "Provided info for " + t1 + " vs " + t2
 		return 0,body
 	else:
@@ -435,11 +445,11 @@ def deleteThread(id):
 	try:
 		thread = r.get_submission(submission_id = id)
 		for data in activeThreads:
-			matchID,team1,team2,thread_id,body,reqr = data
+			matchID,team1,team2,thread_id,reqr = data
 			if thread_id == id:
 				thread.delete()
 				activeThreads.remove(data)
-				logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
+				logger.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
 				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
 				saveData()
 				return team1 + ' vs ' + team2
@@ -453,7 +463,7 @@ def removeWrongThread(id,req):
 		thread = r.get_submission(submission_id = id)
 		dif = datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(thread.created_utc)
 		for data in activeThreads:
-			matchID,team1,team2,thread_id,body,reqr = data
+			matchID,team1,team2,thread_id,reqr = data
 			if thread_id == id:
 				if reqr != req:
 					return 'req'
@@ -461,7 +471,7 @@ def removeWrongThread(id,req):
 					return 'time'
 				thread.delete()
 				activeThreads.remove(data)
-				logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
+				logger.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
 				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
 				saveData()
 				return team1 + ' vs ' + team2
@@ -485,18 +495,23 @@ def firstTryTeams(msg):
 
 # check for new mail, create new threads if needed
 def checkAndCreate():
+	sub = subreddit
 	delims = [' x ',' - ',' v ',' vs ']
+	subdel = ' for '
 	for msg in r.get_unread(unset_has_mail=True,update_user=True,limit=None):
 		msg.mark_as_read()
 		if msg.subject.lower() == 'match thread':
-			teams = firstTryTeams(msg.body)
+			subreq = msg.body.split(subdel,2)
+			if subreq[0] != msg.body:
+				sub = subreq[1].split('/')[-1]
+			teams = firstTryTeams(subreq[0])
 			for delim in delims:
-				attempt = msg.body.split(delim,2)
-				if attempt[0] != msg.body:
+				attempt = subreq[0].split(delim,2)
+				if attempt[0] != subreq[0]:
 					teams = attempt
-			threadStatus,thread_id = createNewThread(teams[0],teams[1],msg.author.name)
+			threadStatus,thread_id = createNewThread(teams[0],teams[1],msg.author.name,sub)
 			if threadStatus == 0: # thread created successfully
-				msg.reply("[Here](http://www.reddit.com/r/" + subreddit + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*")
+				msg.reply("[Here](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*")
 			if threadStatus == 1: # not found
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 			if threadStatus == 2: # before kickoff
@@ -504,7 +519,7 @@ def checkAndCreate():
 			if threadStatus == 3: # after kickoff - probably found the wrong match
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 			if threadStatus == 4: # thread already exists
-				msg.reply("There is already a [match thread](http://www.reddit.com/r/" + subreddit + "/comments/" + thread_id + ") for that game. Join the discussion there!")	
+				msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")	
 		
 		if msg.subject.lower() == 'match info':
 			teams = firstTryTeams(msg.body)
@@ -592,9 +607,9 @@ def updateThreads():
 
 	for data in activeThreads:
 		index = activeThreads.index(data)
-		matchID,team1,team2,thread_id,body,reqr = data
+		matchID,team1,team2,thread_id,reqr = data
 		thread = r.get_submission(submission_id = thread_id)
-		
+		body = thread.selftext
 		venueIndex = body.index('**Venue:**')
 		
 		# update lineups (sometimes goal.com changes/updates them)
@@ -617,11 +632,11 @@ def updateThreads():
 
 		# save data
 		if newbody != body:
-			logging.info("Making edit to %s vs %s", team1,team2)
+			logger.info("Making edit to %s vs %s", team1,team2)
 			print "Making edit to " + team1 + " vs " + team2
 			thread.edit(newbody)
 			saveData()
-		newdata = matchID,team1,team2,thread_id,newbody,reqr
+		newdata = matchID,team1,team2,thread_id,reqr
 		activeThreads[index] = newdata
 		
 		# discard finished matches - search for "FT"
@@ -630,15 +645,23 @@ def updateThreads():
 			
 	for getRid in toRemove:
 		activeThreads.remove(getRid)
-		logging.info("Active threads: %i - removed %s vs %s", len(activeThreads), getRid[1], getRid[2])
+		logger.info("Active threads: %i - removed %s vs %s", len(activeThreads), getRid[1], getRid[2])
 		print "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2]
 		saveData()
 		
 
 r,subreddit,admin,username = login()
 
-logging.basicConfig(filename='log.log',level=logging.ERROR,format='%(asctime)s %(message)s')
-logging.info("[STARTUP]")
+logger = logging.getLogger('a')
+logger.setLevel(logging.ERROR)
+logfilename = 'log.log'
+handler = logging.handlers.RotatingFileHandler(logfilename,maxBytes = 1000,backupCount = 5) 
+handler.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+logger.info("[STARTUP]")
 print "[STARTUP]"
 
 readData()
@@ -650,14 +673,14 @@ while running:
 		updateThreads()
 		sleep(60)
 	except KeyboardInterrupt:
-		logging.info("[MANUAL SHUTDOWN]")
+		logger.info("[MANUAL SHUTDOWN]")
 		print "[MANUAL SHUTDOWN]"
 		running = False
 	except praw.errors.APIException:
 		print "API error, check log file"
-		logging.exception("[API ERROR:]")
+		logger.exception("[API ERROR:]")
 		sleep(120) 
 	except Exception:
 		print "Unknown error, check log file"
-		logging.exception('[UNKNOWN ERROR:]')
+		logger.exception('[UNKNOWN ERROR:]')
 		sleep(120) 
