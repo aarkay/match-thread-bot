@@ -46,8 +46,8 @@ def saveData():
 	f = open('active_threads.txt', 'w+')
 	s = ''
 	for data in activeThreads:
-		matchID,t1,t2,thread_id,reqr = data
-		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + reqr + '&&&&'
+		matchID,t1,t2,thread_id,reqr,sub = data
+		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + reqr + '####' + sub + '&&&&'
 	s = s[0:-4] # take off last &&&&
 	f.write(s.encode('utf8'))
 	f.close()
@@ -59,9 +59,9 @@ def readData():
 	info = s.split('&&&&')
 	if info[0] != '':
 		for d in info:
-			[matchID,t1,t2,thread_id,reqr] = d.split('####')
+			[matchID,t1,t2,thread_id,reqr,sub] = d.split('####')
 			matchID = matchID.encode('utf8') # get rid of weird character at start - got to be a better way to do this...
-			data = matchID, t1, t2, thread_id, reqr
+			data = matchID, t1, t2, thread_id, reqr, sub
 			activeThreads.append(data)
 			logger.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
 			print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2
@@ -375,7 +375,7 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		# don't create a thread if the bot already made it
 		for d in activeThreads:
-			matchID_at,t1_at,t2_at,id_at,reqr_at = d
+			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
 			if t1 == t1_at:
 				return 4,id_at
 		
@@ -419,7 +419,7 @@ def createNewThread(team1,team2,reqr,sub):
 			body += '*' + statmsg + '*\n\n'
 		
 		thread.edit(body)
-		data = site, t1, t2, id, reqr
+		data = site, t1, t2, id, reqr, sub
 		activeThreads.append(data)
 		saveData()
 		logger.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
@@ -455,7 +455,7 @@ def deleteThread(id):
 	try:
 		thread = r.get_submission(submission_id = id)
 		for data in activeThreads:
-			matchID,team1,team2,thread_id,reqr = data
+			matchID,team1,team2,thread_id,reqr,sub = data
 			if thread_id == id:
 				thread.delete()
 				activeThreads.remove(data)
@@ -473,7 +473,7 @@ def removeWrongThread(id,req):
 		thread = r.get_submission(submission_id = id)
 		dif = datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(thread.created_utc)
 		for data in activeThreads:
-			matchID,team1,team2,thread_id,reqr = data
+			matchID,team1,team2,thread_id,reqr,sub = data
 			if thread_id == id:
 				if reqr != req:
 					return 'req'
@@ -619,7 +619,7 @@ def updateThreads():
 
 	for data in activeThreads:
 		index = activeThreads.index(data)
-		matchID,team1,team2,thread_id,reqr = data
+		matchID,team1,team2,thread_id,reqr,sub = data
 		thread = r.get_submission(submission_id = thread_id)
 		body = thread.selftext
 		venueIndex = body.index('**Venue:**')
@@ -644,11 +644,11 @@ def updateThreads():
 
 		# save data
 		if newbody != body:
-			logger.info("Making edit to %s vs %s", team1,team2)
-			print "Making edit to " + team1 + " vs " + team2
+			logger.info("Making edit to %s vs %s (/r/%s)", team1,team2,sub)
+			print "Making edit to " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 			thread.edit(newbody)
 			saveData()
-		newdata = matchID,team1,team2,thread_id,reqr
+		newdata = matchID,team1,team2,thread_id,reqr,sub
 		activeThreads[index] = newdata
 		
 		# discard finished matches - search for "FT"
