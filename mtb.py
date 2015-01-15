@@ -531,7 +531,7 @@ def checkAndCreate():
 			if threadStatus == 4: # thread already exists
 				msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
 			if threadStatus == 5: # invalid subreddit
-				msg.reply("Sorry, it looks like /r/ " + sub + " doesn't exist. Are you sure you entered it correctly?")
+				msg.reply("Sorry, it looks like /r/" + sub + " doesn't exist. Are you sure you entered it correctly?")
 		
 		if msg.subject.lower() == 'match info':
 			teams = firstTryTeams(msg.body)
