@@ -422,8 +422,8 @@ def createNewThread(team1,team2,reqr,sub):
 		data = site, t1, t2, id, reqr, sub
 		activeThreads.append(data)
 		saveData()
-		logger.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
-		print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2
+		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
+		print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub " )"
 		return 0,id
 	else:
 		return 1,''
@@ -682,6 +682,7 @@ running = True
 while running:
 	try:
 		checkAndCreate()
+		sleep(10)
 		updateThreads()
 		sleep(60)
 	except KeyboardInterrupt:
