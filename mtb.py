@@ -423,7 +423,7 @@ def createNewThread(team1,team2,reqr,sub):
 		activeThreads.append(data)
 		saveData()
 		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
-		print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub " )"
+		print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 		return 0,id
 	else:
 		return 1,''
