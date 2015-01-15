@@ -359,6 +359,14 @@ def getTimes(ko):
 	now = datetime.datetime.now()
 	return (hour_i,min_i,now)
 	
+# attempt submission to subreddit
+def submitThread(sub,title):
+	try:
+		thread = r.submit(sub,title,text='Updates soon')
+		return True,thread
+	except:
+		return False,''
+	
 # create a new thread using provided teams	
 def createNewThread(team1,team2,reqr,sub):	
 	site = findGoalSite(team1,team2)
@@ -384,7 +392,9 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		vidcomment = findVideoStreams(team1,team2)
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
-		thread = r.submit(sub,title,text='Updates soon')
+		result,thread = submitThread(sub,title)
+		if result == False:
+			return 5,''
 		vidlink = thread.add_comment(vidcomment)
 		
 		short = thread.short_link
@@ -519,7 +529,9 @@ def checkAndCreate():
 			if threadStatus == 3: # after kickoff - probably found the wrong match
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 			if threadStatus == 4: # thread already exists
-				msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")	
+				msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
+			if threadStatus == 5: # invalid subreddit
+				msg.reply("Sorry, it looks like /r/ " + sub + " doesn't exist. Are you sure you entered it correctly?")
 		
 		if msg.subject.lower() == 'match info':
 			teams = firstTryTeams(msg.body)
@@ -655,7 +667,7 @@ r,subreddit,admin,username = login()
 logger = logging.getLogger('a')
 logger.setLevel(logging.ERROR)
 logfilename = 'log.log'
-handler = logging.handlers.RotatingFileHandler(logfilename,maxBytes = 1000,backupCount = 5) 
+handler = logging.handlers.RotatingFileHandler(logfilename,maxBytes = 10000,backupCount = 5) 
 handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
