@@ -63,8 +63,8 @@ def readData():
 			matchID = matchID.encode('utf8') # get rid of weird character at start - got to be a better way to do this...
 			data = matchID, t1, t2, thread_id, reqr, sub
 			activeThreads.append(data)
-			logger.info("Active threads: %i - added %s vs %s", len(activeThreads), t1, t2)
-			print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2
+			logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
+			print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 	f.close()
 
 def getBotStatus():
