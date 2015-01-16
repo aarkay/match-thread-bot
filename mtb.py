@@ -27,8 +27,25 @@ hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML,
    'Connection': 'keep-alive'}
 
 activeThreads = []
-subblacklist = []
-usrblacklist = ['dbawbaby','12F12']
+
+subblacklist = ['subreddit',
+				'all',
+				'gaming',
+				'pics',
+				'funny',
+				'videos',
+				'adviceanimals',
+				'politics',
+				'iama',
+				'gifs',
+				'worldnews',
+				'aww',
+				'askreddit',
+				'cringe',
+				'atheism']
+				
+usrblacklist = ['dbawbaby',
+				'12F12']
 
 def login():
 	try:
@@ -398,7 +415,8 @@ def submitThread(sub,title):
 	try:
 		thread = r.submit(sub,title,text='Updates soon')
 		return True,thread
-	except:
+	except praw.errors.APIException::
+		print "Submission error, check log file"
 		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 	
@@ -581,7 +599,7 @@ def checkAndCreate():
 			if threadStatus == 5: # invalid subreddit
 				msg.reply("Sorry, it looks like /r/" + sub + " doesn't exist. Are you sure you entered it correctly?")
 			if threadStatus == 6: # sub blacklisted
-				msg.reply("Sorry, I'm not allowed to post to /r/" + sub + ". Please contact the subreddit mods if you'd like more info.")
+				msg.reply("Sorry, I cannot post to /r/" + sub + ". Please contact the subreddit mods if you'd like more info.")
 			if threadStatus == 7: # thread limit
 				msg.reply("Sorry, you can only have one active thread request at a time.")
 		
@@ -719,7 +737,7 @@ r,subreddit,admin,username = login()
 logger = logging.getLogger('a')
 logger.setLevel(logging.ERROR)
 logfilename = 'log.log'
-handler = logging.handlers.RotatingFileHandler(logfilename,maxBytes = 10000,backupCount = 5) 
+handler = logging.handlers.RotatingFileHandler(logfilename,maxBytes = 50000,backupCount = 5) 
 handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
