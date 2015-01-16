@@ -399,6 +399,7 @@ def submitThread(sub,title):
 		thread = r.submit(sub,title,text='Updates soon')
 		return True,thread
 	except:
+		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 	
 # create a new thread using provided teams	
@@ -413,13 +414,15 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		# don't post if user is blacklisted
 		if reqr in usrblacklist:
-			return 7,''
+			return 8,''
 		
-		# don't create a thread if the bot already made it
+		# don't create a thread if the bot already made it or if user already has an active thread
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
 			if t1 == t1_at and sub == sub_at:
 				return 4,id_at
+			if reqr == reqr_at:
+				return 7,''
 		
 		# don't create a thread if the match is done (probably found the wrong match)
 		if status == 'FT' or status == 'PEN' or status == 'AET':
@@ -579,6 +582,8 @@ def checkAndCreate():
 				msg.reply("Sorry, it looks like /r/" + sub + " doesn't exist. Are you sure you entered it correctly?")
 			if threadStatus == 6: # sub blacklisted
 				msg.reply("Sorry, I'm not allowed to post to /r/" + sub + ". Please contact the subreddit mods if you'd like more info.")
+			if threadStatus == 7: # thread limit
+				msg.reply("Sorry, you can only have one active thread request at a time.")
 		
 		if msg.subject.lower() == 'match info':
 			teams = firstTryTeams(msg.body)
