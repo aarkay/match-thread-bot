@@ -543,8 +543,8 @@ def deleteThread(id):
 			if thread_id == id:
 				thread.delete()
 				activeThreads.remove(data)
-				logger.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
-				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
+				logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), team1, team2, sub)
+				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 				saveData()
 				return team1 + ' vs ' + team2
 		return ''
@@ -565,8 +565,8 @@ def removeWrongThread(id,req):
 					return 'time'
 				thread.delete()
 				activeThreads.remove(data)
-				logger.info("Active threads: %i - removed %s vs %s", len(activeThreads), team1, team2)
-				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2
+				logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), team1, team2, sub)
+				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 				saveData()
 				return team1 + ' vs ' + team2
 		return 'thread'
@@ -598,6 +598,8 @@ def checkAndCreate():
 			subreq = msg.body.split(subdel,2)
 			if subreq[0] != msg.body:
 				sub = subreq[1].split('/')[-1]
+				sub = sub.lower()
+				sub = sub.strip()
 			teams = firstTryTeams(subreq[0])
 			for delim in delims:
 				attempt = subreq[0].split(delim,2)
