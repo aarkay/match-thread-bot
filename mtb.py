@@ -28,6 +28,7 @@ hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML,
 
 activeThreads = []
 
+# obvious attempts at abuse + mod requests
 subblacklist = ['subreddit',
 				'all',
 				'gaming',
@@ -43,7 +44,8 @@ subblacklist = ['subreddit',
 				'askreddit',
 				'cringe',
 				'atheism']
-				
+
+# naughty list				
 usrblacklist = ['dbawbaby',
 				'12F12']
 
@@ -428,29 +430,43 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		# don't post to a subreddit if it's blacklisted
 		if sub in subblacklist:
+			print "Denied post request to " + sub
+			logger.info("Denied post request to %s", sub)
 			return 6,''
 		
 		# don't post if user is blacklisted
 		if reqr in usrblacklist:
+			print "Denied post request from " + reqr + " - blacklisted"
+			logger.info("Denied post request from %s - blacklisted", reqr)
 			return 8,''
 		
 		# don't create a thread if the bot already made it or if user already has an active thread
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
 			if t1 == t1_at and sub == sub_at:
+				print "Denied " + t1 + " vs " + t2 + " request - thread already exists"
+				logger.info("Denied %s vs %s request - thread already exists", t1, t2)
 				return 4,id_at
 			if reqr == reqr_at:
+				print "Denied post request from " + reqr + " - has an active thread request"
+				logger.info("Denied post request from %s - has an active thread request", reqr)
 				return 7,''
 		
 		# don't create a thread if the match is done (probably found the wrong match)
 		if status == 'FT' or status == 'PEN' or status == 'AET':
+			print "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
+			logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
 			return 3,''
 		
 		# don't create a thread if the match hasn't started yet
 		hour_i, min_i, now = getTimes(ko)
 		if now.hour < hour_i:
+			print "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
 		if (now.hour == hour_i) and (now.minute < min_i):
+			print "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
 		
 		vidcomment = findVideoStreams(team1,team2)
@@ -492,6 +508,8 @@ def createNewThread(team1,team2,reqr,sub):
 		print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 		return 0,id
 	else:
+		print "Could not find match info for " + t1 + " vs " + t2
+		logger.info("Could not find match info for %s vs %s", t1, t2)
 		return 1,''
 
 # if the requester just wants a template		
