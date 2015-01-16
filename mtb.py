@@ -3,16 +3,15 @@ from collections import Counter
 from time import sleep
 
 # TO DO: 
-# x subreddit requests (__ vs __ for ___)
-# fix penalties detection
-# x date logging
-# stream sources
-# use goal.com to bypass thread request
 # python 3
 #  print(" ")
 #  urllib2 to urllib
 #  cookielib to http.cookiejar
 #  s = f.read().decode('utf8') line not needed? python 3 decodes automatically
+# fix penalties detection
+#  search subsequent line for "won"
+# x date logging
+# use goal.com to bypass thread request
 # switch from urllib2 to requests maybe
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
 # more robust handling of errors
@@ -28,6 +27,8 @@ hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML,
    'Connection': 'keep-alive'}
 
 activeThreads = []
+subblacklist = []
+usrblacklist = ['dbawbaby','12F12']
 
 def login():
 	try:
@@ -406,6 +407,14 @@ def createNewThread(team1,team2,reqr,sub):
 	if site != 'no match':
 		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
 		
+		# don't post to a subreddit if it's blacklisted
+		if sub in subblacklist:
+			return 6,''
+		
+		# don't post if user is blacklisted
+		if reqr in usrblacklist:
+			return 7,''
+		
 		# don't create a thread if the bot already made it
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
@@ -426,6 +435,8 @@ def createNewThread(team1,team2,reqr,sub):
 		vidcomment = findVideoStreams(team1,team2)
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
 		result,thread = submitThread(sub,title)
+		
+		# if subreddit was invalid, notify
 		if result == False:
 			return 5,''
 		vidlink = thread.add_comment(vidcomment)
@@ -566,6 +577,8 @@ def checkAndCreate():
 				msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
 			if threadStatus == 5: # invalid subreddit
 				msg.reply("Sorry, it looks like /r/" + sub + " doesn't exist. Are you sure you entered it correctly?")
+			if threadStatus == 6: # sub blacklisted
+				msg.reply("Sorry, I'm not allowed to post to /r/" + sub + ". Please contact the subreddit mods if you'd like more info.")
 		
 		if msg.subject.lower() == 'match info':
 			teams = firstTryTeams(msg.body)
