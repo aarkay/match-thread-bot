@@ -589,10 +589,10 @@ def firstTryTeams(msg):
 
 # check for new mail, create new threads if needed
 def checkAndCreate():
-	sub = subreddit
 	delims = [' x ',' - ',' v ',' vs ']
 	subdel = ' for '
 	for msg in r.get_unread(unset_has_mail=True,update_user=True,limit=None):
+		sub = subreddit
 		msg.mark_as_read()
 		if msg.subject.lower() == 'match thread':
 			subreq = msg.body.split(subdel,2)
