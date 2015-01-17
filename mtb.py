@@ -418,7 +418,7 @@ def submitThread(sub,title):
 		thread = r.submit(sub,title,text='Updates soon')
 		return True,thread
 	except praw.errors.APIException:
-		print "Submission error, check log file"
+		print "Submission error for '" + title + "' in /r/" + sub"
 		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 	
