@@ -430,8 +430,8 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		# don't post to a subreddit if it's blacklisted
 		if sub in subblacklist:
-			print "Denied post request to " + sub
-			logger.info("Denied post request to %s", sub)
+			print "Denied post request to " + sub + " - blacklisted"
+			logger.info("Denied post request to %s - blacklisted", sub)
 			return 6,''
 		
 		# don't post if user is blacklisted
@@ -444,8 +444,8 @@ def createNewThread(team1,team2,reqr,sub):
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
 			if t1 == t1_at and sub == sub_at:
-				print "Denied " + t1 + " vs " + t2 + " request - thread already exists"
-				logger.info("Denied %s vs %s request - thread already exists", t1, t2)
+				print "Denied " + t1 + " vs " + t2 + " request for " + sub + " - thread already exists"
+				logger.info("Denied %s vs %s request for %s - thread already exists", t1, t2, sub)
 				return 4,id_at
 			if reqr == reqr_at:
 				print "Denied post request from " + reqr + " - has an active thread request"
@@ -618,7 +618,7 @@ def checkAndCreate():
 			if threadStatus == 4: # thread already exists
 				msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
 			if threadStatus == 5: # invalid subreddit
-				msg.reply("Sorry, it looks like /r/" + sub + " doesn't exist. Are you sure you entered it correctly?")
+				msg.reply("Sorry, I couldn't post to /r/" + sub + ". It may not exist, or I may have hit a posting limit.")
 			if threadStatus == 6: # sub blacklisted
 				msg.reply("Sorry, I cannot post to /r/" + sub + ". Please contact the subreddit mods if you'd like more info.")
 			if threadStatus == 7: # thread limit
