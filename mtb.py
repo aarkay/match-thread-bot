@@ -48,6 +48,9 @@ subblacklist = ['subreddit',
 # naughty list				
 usrblacklist = ['dbawbaby',
 				'12F12']
+				
+# allowed to make multiple threads
+usrwhitelist = ['Omar_Til_Death']
 
 def login():
 	try:
@@ -418,7 +421,7 @@ def submitThread(sub,title):
 		thread = r.submit(sub,title,text='Updates soon')
 		return True,thread
 	except praw.errors.APIException:
-		print "Submission error for '" + title + "' in /r/" + sub
+		print "Submission error for '" + title + "' in /r/" + sub + ")"
 		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 	
@@ -447,7 +450,7 @@ def createNewThread(team1,team2,reqr,sub):
 				print "Denied " + t1 + " vs " + t2 + " request for " + sub + " - thread already exists"
 				logger.info("Denied %s vs %s request for %s - thread already exists", t1, t2, sub)
 				return 4,id_at
-			if reqr == reqr_at:
+			if reqr == reqr_at and reqr not in usrwhitelist:
 				print "Denied post request from " + reqr + " - has an active thread request"
 				logger.info("Denied post request from %s - has an active thread request", reqr)
 				return 7,''
