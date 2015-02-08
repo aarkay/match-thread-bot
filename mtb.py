@@ -395,7 +395,7 @@ def findVideoStreams(team1,team2):
 	if liveFootballID != 'no match':
 		text += '[LiveFootballVideo](' + liveFootballID + ')\n\n'
 
-	text += "^_____________________________________________________________________\n\n"
+	text += "Check out /r/soccerstreams for more.\n\n^_____________________________________________________________________\n\n"
 	text += "[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 	
 	return text
