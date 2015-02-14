@@ -61,7 +61,8 @@ def login():
 		f.close()
 		return r,subreddit,admin,username
 	except:
-		print "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
 		sleep(10)
 
 # save activeThreads
@@ -87,7 +88,8 @@ def readData():
 			data = matchID, t1, t2, thread_id, reqr, sub
 			activeThreads.append(data)
 			logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
-			print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
+			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+			print t + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 	f.close()
 
 def getBotStatus():
@@ -380,20 +382,53 @@ def findLiveFootballID(team1,team2):
 	else:
 		logger.info("Couldn't find LiveFootballVideo streams for %s vs %s", team1,team2)
 		return 'no match'
+		
+def findBebaTVID(team1,team2):
+	t1 = team1.split()
+	t2 = team2.split()
+	linkList = []
+	fixAddress = "http://beba.tv/football"
+	req = urllib2.Request(fixAddress, headers=hdr)
+	try:
+		fixWebsite = urllib2.urlopen(req)
+	except urllib2.HTTPError, e:
+		logger.error("Couldn't access BebaTV streams for %s vs %s", team1,team2)
+		return 'no match'
+	fix_html = fixWebsite.read()
+	
+	for word in t1:
+		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
+		for link in links:	
+			linkList.append(link)
+	for word in t2:
+		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
+		for link in links:
+			linkList.append(link)
+
+	counts = Counter(linkList)
+	if counts.most_common(1) != []:
+		mode = counts.most_common(1)[0]
+		return mode[0]
+	else:
+		logger.info("Couldn't find BebaTV streams for %s vs %s", team1,team2)
+		return 'no match'
 	
 def findVideoStreams(team1,team2):
 	text = "**Got a stream? Post it here!**\n\n"
 	
-	wiziID = findWiziwigID(team1,team2)
+	#wiziID = findWiziwigID(team1,team2)
 	firstrowID = findFirstrowID(team1,team2)
 	liveFootballID = findLiveFootballID(team1,team2)
+	#bebaTVID = findBebaTVID(team1,team2)
 	
-	if wiziID != 'no match':
-		text += '[wiziwig](http://www.wiziwig.sx/' + wiziID + ')\n\n'
+	#if wiziID != 'no match':
+	#	text += '[wiziwig](http://www.wiziwig.sx/' + wiziID + ')\n\n'
 	if firstrowID != 'no match':
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
 	if liveFootballID != 'no match':
 		text += '[LiveFootballVideo](' + liveFootballID + ')\n\n'
+	#if bebaTVID != 'no match':
+	#	text += '[BebaTV](http://beba.tv/football/' + bebaTVID + ')\n\n'
 
 	text += "Check out /r/soccerstreams for more.\n\n^_____________________________________________________________________\n\n"
 	text += "[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
@@ -420,8 +455,9 @@ def submitThread(sub,title):
 	try:
 		thread = r.submit(sub,title,text='Updates soon')
 		return True,thread
-	except praw.errors.APIException:
-		print "Submission error for '" + title + "' in /r/" + sub + ")"
+	except:
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "Submission error for '" + title + "' in /r/" + sub
 		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 	
@@ -431,44 +467,59 @@ def createNewThread(team1,team2,reqr,sub):
 	if site != 'no match':
 		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
 		
+		botstat,statmsg = getBotStatus()
+		# don't make a post if there's some fatal error
+		if botstat == 'red':
+			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+			print t + "Denied " + t1 + " vs " + t2 + " request for - status set to red"
+			logger.info("Denied %s vs %s request - status set to red", t1, t2)
+			return 8,''
+		
 		# don't post to a subreddit if it's blacklisted
 		if sub in subblacklist:
-			print "Denied post request to " + sub + " - blacklisted"
+			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+			print t + "Denied post request to " + sub + " - blacklisted"
 			logger.info("Denied post request to %s - blacklisted", sub)
 			return 6,''
 		
 		# don't post if user is blacklisted
 		if reqr in usrblacklist:
-			print "Denied post request from " + reqr + " - blacklisted"
+			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+			print t + "Denied post request from " + reqr + " - blacklisted"
 			logger.info("Denied post request from %s - blacklisted", reqr)
-			return 8,''
+			return 9,''
 		
 		# don't create a thread if the bot already made it or if user already has an active thread
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
 			if t1 == t1_at and sub == sub_at:
-				print "Denied " + t1 + " vs " + t2 + " request for " + sub + " - thread already exists"
+				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+				print t + "Denied " + t1 + " vs " + t2 + " request for " + sub + " - thread already exists"
 				logger.info("Denied %s vs %s request for %s - thread already exists", t1, t2, sub)
 				return 4,id_at
 			if reqr == reqr_at and reqr not in usrwhitelist:
-				print "Denied post request from " + reqr + " - has an active thread request"
+				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+				print t + Denied post request from " + reqr + " - has an active thread request"
 				logger.info("Denied post request from %s - has an active thread request", reqr)
 				return 7,''
 		
 		# don't create a thread if the match is done (probably found the wrong match)
 		if status == 'FT' or status == 'PEN' or status == 'AET':
-			print "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
+			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+			print t + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
 			logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
 			return 3,''
 		
 		# don't create a thread if the match hasn't started yet
 		hour_i, min_i, now = getTimes(ko)
 		if now.hour < hour_i:
-			print "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+			print t + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
 			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
 		if (now.hour == hour_i) and (now.minute < min_i):
-			print "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+			print t + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
 			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
 		
@@ -498,7 +549,6 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + '/live-commentary)*\n\n'
 		
-		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
 			body += '*' + statmsg + '*\n\n'
 		
@@ -508,10 +558,12 @@ def createNewThread(team1,team2,reqr,sub):
 		activeThreads.append(data)
 		saveData()
 		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
-		print "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 		return 0,id
 	else:
-		print "Could not find match info for " + t1 + " vs " + t2
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "Could not find match info for " + t1 + " vs " + t2
 		logger.info("Could not find match info for %s vs %s", t1, t2)
 		return 1,''
 
@@ -532,7 +584,8 @@ def createMatchInfo(team1,team2):
 		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
 		
 		logger.info("Provided info for %s vs %s", t1, t2)
-		print "Provided info for " + t1 + " vs " + t2
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "Provided info for " + t1 + " vs " + t2
 		return 0,body
 	else:
 		return 1,''
@@ -547,7 +600,8 @@ def deleteThread(id):
 				thread.delete()
 				activeThreads.remove(data)
 				logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), team1, team2, sub)
-				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
+				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+				print t + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 				saveData()
 				return team1 + ' vs ' + team2
 		return ''
@@ -569,7 +623,8 @@ def removeWrongThread(id,req):
 				thread.delete()
 				activeThreads.remove(data)
 				logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), team1, team2, sub)
-				print "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
+				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+				print t + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 				saveData()
 				return team1 + ' vs ' + team2
 		return 'thread'
@@ -626,6 +681,8 @@ def checkAndCreate():
 				msg.reply("Sorry, I cannot post to /r/" + sub + ". Please contact the subreddit mods if you'd like more info.")
 			if threadStatus == 7: # thread limit
 				msg.reply("Sorry, you can only have one active thread request at a time.")
+			if threadStatus == 8: # status set to red
+				msg.reply("Sorry, the bot is currently unable to post threads. Check with /u/" + admin + " for more info; this should hopefully be resolved soon.")
 		
 		if msg.subject.lower() == 'match info':
 			teams = firstTryTeams(msg.body)
@@ -739,7 +796,8 @@ def updateThreads():
 		# save data
 		if newbody != body:
 			logger.info("Making edit to %s vs %s (/r/%s)", team1,team2,sub)
-			print "Making edit to " + team1 + " vs " + team2 + " (/r/" + sub + ")"
+			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+			print t + "Making edit to " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 			thread.edit(newbody)
 			saveData()
 		newdata = matchID,team1,team2,thread_id,reqr,sub
@@ -752,7 +810,8 @@ def updateThreads():
 	for getRid in toRemove:
 		activeThreads.remove(getRid)
 		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), getRid[1], getRid[2], getRid[5])
-		print "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2] + " (/r/" + getRid[5] + ")"
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2] + " (/r/" + getRid[5] + ")"
 		saveData()
 		
 
@@ -768,7 +827,8 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 logger.info("[STARTUP]")
-print "[STARTUP]"
+t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+print t + "[STARTUP]"
 
 readData()
 
@@ -780,13 +840,16 @@ while running:
 		sleep(60)
 	except KeyboardInterrupt:
 		logger.info("[MANUAL SHUTDOWN]")
-		print "[MANUAL SHUTDOWN]"
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "[MANUAL SHUTDOWN]\n"
 		running = False
 	except praw.errors.APIException:
-		print "API error, check log file"
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "API error, check log file"
 		logger.exception("[API ERROR:]")
-		sleep(120) 
+		sleep(60) 
 	except Exception:
-		print "Unknown error, check log file"
+		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
+		print t + "Unknown error, check log file"
 		logger.exception('[UNKNOWN ERROR:]')
-		sleep(120) 
+		sleep(60) 
