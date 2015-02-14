@@ -52,6 +52,13 @@ usrblacklist = ['dbawbaby',
 # allowed to make multiple threads
 usrwhitelist = ['Omar_Til_Death']
 
+def getTimestamp():
+		dt = str(datetime.datetime.now().month) + '/' + str(datetime.datetime.now().day) + ' '
+		hr = str(datetime.datetime.now().hour) if len(str(datetime.datetime.now().hour)) > 1 else '0' + str(datetime.datetime.now().hour)
+		min = str(datetime.datetime.now().minute) if len(str(datetime.datetime.now().minute)) > 1 else '0' + str(datetime.datetime.now().minute)
+		t = '[' + hr + ':' + min + '] '
+		return dt + t
+
 def login():
 	try:
 		f = open('login.txt')
@@ -61,8 +68,7 @@ def login():
 		f.close()
 		return r,subreddit,admin,username
 	except:
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
+		print getTimestamp() + "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
 		sleep(10)
 
 # save activeThreads
@@ -88,8 +94,7 @@ def readData():
 			data = matchID, t1, t2, thread_id, reqr, sub
 			activeThreads.append(data)
 			logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
-			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-			print t + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
+			print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 	f.close()
 
 def getBotStatus():
@@ -456,8 +461,7 @@ def submitThread(sub,title):
 		thread = r.submit(sub,title,text='Updates soon')
 		return True,thread
 	except:
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "Submission error for '" + title + "' in /r/" + sub
+		print getTimestamp() + "Submission error for '" + title + "' in /r/" + sub
 		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 	
@@ -470,22 +474,19 @@ def createNewThread(team1,team2,reqr,sub):
 		botstat,statmsg = getBotStatus()
 		# don't make a post if there's some fatal error
 		if botstat == 'red':
-			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-			print t + "Denied " + t1 + " vs " + t2 + " request for - status set to red"
+			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request for - status set to red"
 			logger.info("Denied %s vs %s request - status set to red", t1, t2)
 			return 8,''
 		
 		# don't post to a subreddit if it's blacklisted
 		if sub in subblacklist:
-			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-			print t + "Denied post request to " + sub + " - blacklisted"
+			print getTimestamp() + "Denied post request to " + sub + " - blacklisted"
 			logger.info("Denied post request to %s - blacklisted", sub)
 			return 6,''
 		
 		# don't post if user is blacklisted
 		if reqr in usrblacklist:
-			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-			print t + "Denied post request from " + reqr + " - blacklisted"
+			print getTimestamp() + "Denied post request from " + reqr + " - blacklisted"
 			logger.info("Denied post request from %s - blacklisted", reqr)
 			return 9,''
 		
@@ -493,33 +494,28 @@ def createNewThread(team1,team2,reqr,sub):
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
 			if t1 == t1_at and sub == sub_at:
-				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-				print t + "Denied " + t1 + " vs " + t2 + " request for " + sub + " - thread already exists"
+				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request for " + sub + " - thread already exists"
 				logger.info("Denied %s vs %s request for %s - thread already exists", t1, t2, sub)
 				return 4,id_at
 			if reqr == reqr_at and reqr not in usrwhitelist:
-				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-				print t + "Denied post request from " + reqr + " - has an active thread request"
+				print getTimestamp() + "Denied post request from " + reqr + " - has an active thread request"
 				logger.info("Denied post request from %s - has an active thread request", reqr)
 				return 7,''
 		
 		# don't create a thread if the match is done (probably found the wrong match)
 		if status == 'FT' or status == 'PEN' or status == 'AET':
-			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-			print t + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
+			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
 			logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
 			return 3,''
 		
 		# don't create a thread if the match hasn't started yet
 		hour_i, min_i, now = getTimes(ko)
 		if now.hour < hour_i:
-			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-			print t + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
 			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
 		if (now.hour == hour_i) and (now.minute < min_i):
-			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-			print t + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
 			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
 		
@@ -557,13 +553,12 @@ def createNewThread(team1,team2,reqr,sub):
 		data = site, t1, t2, id, reqr, sub
 		activeThreads.append(data)
 		saveData()
+		
+		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 		return 0,id
 	else:
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "Could not find match info for " + t1 + " vs " + t2
+		print getTimestamp() + "Could not find match info for " + t1 + " vs " + t2
 		logger.info("Could not find match info for %s vs %s", t1, t2)
 		return 1,''
 
@@ -584,8 +579,7 @@ def createMatchInfo(team1,team2):
 		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
 		
 		logger.info("Provided info for %s vs %s", t1, t2)
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "Provided info for " + t1 + " vs " + t2
+		print getTimestamp() + "Provided info for " + t1 + " vs " + t2
 		return 0,body
 	else:
 		return 1,''
@@ -600,8 +594,7 @@ def deleteThread(id):
 				thread.delete()
 				activeThreads.remove(data)
 				logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), team1, team2, sub)
-				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-				print t + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
+				print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 				saveData()
 				return team1 + ' vs ' + team2
 		return ''
@@ -623,8 +616,7 @@ def removeWrongThread(id,req):
 				thread.delete()
 				activeThreads.remove(data)
 				logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), team1, team2, sub)
-				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-				print t + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
+				print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 				saveData()
 				return team1 + ' vs ' + team2
 		return 'thread'
@@ -796,8 +788,7 @@ def updateThreads():
 		# save data
 		if newbody != body:
 			logger.info("Making edit to %s vs %s (/r/%s)", team1,team2,sub)
-			t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-			print t + "Making edit to " + team1 + " vs " + team2 + " (/r/" + sub + ")"
+			print getTimestamp() + "Making edit to " + team1 + " vs " + team2 + " (/r/" + sub + ")"
 			thread.edit(newbody)
 			saveData()
 		newdata = matchID,team1,team2,thread_id,reqr,sub
@@ -810,8 +801,7 @@ def updateThreads():
 	for getRid in toRemove:
 		activeThreads.remove(getRid)
 		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), getRid[1], getRid[2], getRid[5])
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2] + " (/r/" + getRid[5] + ")"
+		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2] + " (/r/" + getRid[5] + ")"
 		saveData()
 		
 
@@ -827,8 +817,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 logger.info("[STARTUP]")
-t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-print t + "[STARTUP]"
+print getTimestamp() + "[STARTUP]"
 
 readData()
 
@@ -840,16 +829,13 @@ while running:
 		sleep(60)
 	except KeyboardInterrupt:
 		logger.info("[MANUAL SHUTDOWN]")
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "[MANUAL SHUTDOWN]\n"
+		print getTimestamp() + "[MANUAL SHUTDOWN]\n"
 		running = False
 	except praw.errors.APIException:
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "API error, check log file"
+		print getTimestamp() + "API error, check log file"
 		logger.exception("[API ERROR:]")
 		sleep(60) 
 	except Exception:
-		t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-		print t + "Unknown error, check log file"
+		print getTimestamp() + "Unknown error, check log file"
 		logger.exception('[UNKNOWN ERROR:]')
 		sleep(60) 
