@@ -499,7 +499,7 @@ def createNewThread(team1,team2,reqr,sub):
 				return 4,id_at
 			if reqr == reqr_at and reqr not in usrwhitelist:
 				t = '[' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) + '] '
-				print t + Denied post request from " + reqr + " - has an active thread request"
+				print t + "Denied post request from " + reqr + " - has an active thread request"
 				logger.info("Denied post request from %s - has an active thread request", reqr)
 				return 7,''
 		
