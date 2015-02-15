@@ -424,7 +424,7 @@ def findVideoStreams(team1,team2):
 	#wiziID = findWiziwigID(team1,team2)
 	firstrowID = findFirstrowID(team1,team2)
 	liveFootballID = findLiveFootballID(team1,team2)
-	bebaTVID = findBebaTVID(team1,team2)
+	#bebaTVID = findBebaTVID(team1,team2)
 	
 	#if wiziID != 'no match':
 	#	text += '[wiziwig](http://www.wiziwig.sx/' + wiziID + ')\n\n'
@@ -432,8 +432,8 @@ def findVideoStreams(team1,team2):
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
 	if liveFootballID != 'no match':
 		text += '[LiveFootballVideo](' + liveFootballID + ')\n\n'
-	if bebaTVID != 'no match':
-		text += '[BebaTV](http://beba.tv/football/' + bebaTVID + ')\n\n'
+	#if bebaTVID != 'no match':
+	#	text += '[BebaTV](http://beba.tv/football/' + bebaTVID + ')\n\n'
 
 	text += "Check out /r/soccerstreams for more.\n\n^_____________________________________________________________________\n\n"
 	text += "[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
