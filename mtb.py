@@ -708,6 +708,15 @@ def checkAndCreate():
 				else:
 					msg.reply("Deleted " + name)
 				
+def getExtraInfo(matchID):
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID
+	req = urllib2.Request(lineAddress, headers=hdr)
+	lineWebsite = urllib2.urlopen(req)
+	line_html_enc = lineWebsite.read()
+	line_html = line_html_enc.decode("utf8")
+	info = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
+	return info
+				
 # update score, scorers
 def updateScore(matchID, t1, t2):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
@@ -717,7 +726,7 @@ def updateScore(matchID, t1, t2):
 	line_html = line_html_enc.decode("utf8")
 	leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
 	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
-	aggregate = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
+	info = getExtraInfo(matchID)
 	status = getStatus(matchID)
 	goalUpdating = True
 	if status == 'v':
@@ -735,8 +744,8 @@ def updateScore(matchID, t1, t2):
 	if not goalUpdating:
 		text += '*Sorry, it looks like goal.com will be providing little to no match updates for this game.*\n\n'
 	
-	if aggregate != '':
-		text += '**_' + aggregate + '_**\n\n'
+	if info != '':
+		text += '***' + info + '***\n\n'
 	
 	left = ''
 	if leftScorers != []:
@@ -763,11 +772,20 @@ def updateThreads():
 	toRemove = []
 
 	for data in activeThreads:
+		finished = False				
 		index = activeThreads.index(data)
 		matchID,team1,team2,thread_id,reqr,sub = data
 		thread = r.get_submission(submission_id = thread_id)
 		body = thread.selftext
 		venueIndex = body.index('**Venue:**')
+		
+		# detect if finished
+		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'AET':
+			finished = True
+		elif getStatus(matchID) == 'PEN'
+			info = getExtraInfo(matchID)
+			if 'won' in info:
+				finished = True
 		
 		# update lineups (sometimes goal.com changes/updates them)
 		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
@@ -796,8 +814,7 @@ def updateThreads():
 		newdata = matchID,team1,team2,thread_id,reqr,sub
 		activeThreads[index] = newdata
 		
-		# discard finished matches - search for "FT"
-		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'PEN' or getStatus(matchID) == 'AET':
+		if finished:
 			toRemove.append(newdata)
 			
 	for getRid in toRemove:
