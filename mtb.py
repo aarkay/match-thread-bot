@@ -782,7 +782,7 @@ def updateThreads():
 		# detect if finished
 		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'AET':
 			finished = True
-		elif getStatus(matchID) == 'PEN'
+		elif getStatus(matchID) == 'PEN':
 			info = getExtraInfo(matchID)
 			if 'won' in info:
 				finished = True
