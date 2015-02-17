@@ -234,69 +234,71 @@ def findScoreSide(time,left,right):
 	return 'none'
 
 def grabEvents(matchID,left,right):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
-	req = urllib2.Request(lineAddress, headers=hdr)
-	lineWebsite = urllib2.urlopen(req)
-	line_html_enc = lineWebsite.read()
-	line_html = line_html_enc.decode("utf8")
-	
-	body = ""
-	split = line_html.split('<ul class="commentaries') # [0]:nonsense [1]:events
-	events = split[1].split('<li data-event-type="')
-	events = events[1:]
-	events = events[::-1]
-	
-	L = 0
-	R = 0
-	updatescores = True
-	
-	# goal.com's full commentary tagged as "action" - ignore these
-	# will only report goals (+ penalties, own goals), yellows, reds, subs - not sure what else goal.com reports
-	supportedEvents = ['goal','penalty-goal','own-goal','missed-penalty','yellow-card','red-card','yellow-red','substitution']
-	for text in events:
-		tag = re.findall('(.*?)"',text,re.DOTALL)[0]
-		if tag.lower() in supportedEvents:
-			time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
-			if time[-1] == ' ':
-				time = time[:-1]
-			info = "**" + time + "** "
-			event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
-			if event[-1] == ' ':
-				event = event[:-1]
-			if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
-				if tag.lower() == 'goal':
-					event = event[:4] + ' ' + event[4:]
-				elif tag.lower() == 'penalty-goal':
-					event = event[:12] + ' ' + event[12:]
-				else:
-					event = event[:8] + ' ' + event[8:]
-				info += '[](#icon-ball) **' + event + '**'
-				if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
-					L += 1
-				elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
-					R += 1
-				else:
-					updatescores = False
-				if updatescores:
-					info += ' **' + str(L) + '-' + str(R) + '**'
-			if tag.lower() == 'missed-penalty':
-				event = event[:14] + ' ' + event[14:]
-				info += '[](#icon-red-ball) **' + event + '**'
-			if tag.lower() == 'yellow-card':
-				event = event[:11] + ' ' + event[11:]
-				info += '[](#icon-yellow) ' + event
-			if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
-				if tag.lower() == 'red-card':
-					event = event[:8] + ' ' + event[8:]
-				else:
-					event = event[:10] + ' ' + event[10:]
-				info += '[](#icon-red) ' + event
-			if tag.lower() == 'substitution':
-				info += '[](#icon-sub) Substitution: [](#icon-down)' + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
-				info += ' [](#icon-up)' + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
-			body += info + '\n\n'
+	try:
+		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
+		req = urllib2.Request(lineAddress, headers=hdr)
+		lineWebsite = urllib2.urlopen(req)
+		line_html_enc = lineWebsite.read()
+		line_html = line_html_enc.decode("utf8")
 		
-	return body
+		body = ""
+		split = line_html.split('<ul class="commentaries') # [0]:nonsense [1]:events
+		events = split[1].split('<li data-event-type="')
+		events = events[1:]
+		events = events[::-1]
+		
+		L = 0
+		R = 0
+		updatescores = True
+		
+		# goal.com's full commentary tagged as "action" - ignore these
+		# will only report goals (+ penalties, own goals), yellows, reds, subs - not sure what else goal.com reports
+		supportedEvents = ['goal','penalty-goal','own-goal','missed-penalty','yellow-card','red-card','yellow-red','substitution']
+		for text in events:
+			tag = re.findall('(.*?)"',text,re.DOTALL)[0]
+			if tag.lower() in supportedEvents:
+				time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
+				if time[-1] == ' ':
+					time = time[:-1]
+				info = "**" + time + "** "
+				event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
+				if event[-1] == ' ':
+					event = event[:-1]
+				if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
+					if tag.lower() == 'goal':
+						event = event[:4] + ' ' + event[4:]
+					elif tag.lower() == 'penalty-goal':
+						event = event[:12] + ' ' + event[12:]
+					else:
+						event = event[:8] + ' ' + event[8:]
+					info += '[](#icon-ball) **' + event + '**'
+					if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
+						L += 1
+					elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
+						R += 1
+					else:
+						updatescores = False
+					if updatescores:
+						info += ' **' + str(L) + '-' + str(R) + '**'
+				if tag.lower() == 'missed-penalty':
+					event = event[:14] + ' ' + event[14:]
+					info += '[](#icon-red-ball) **' + event + '**'
+				if tag.lower() == 'yellow-card':
+					event = event[:11] + ' ' + event[11:]
+					info += '[](#icon-yellow) ' + event
+				if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
+					if tag.lower() == 'red-card':
+						event = event[:8] + ' ' + event[8:]
+					else:
+						event = event[:10] + ' ' + event[10:]
+					info += '[](#icon-red) ' + event
+				if tag.lower() == 'substitution':
+					info += '[](#icon-sub) Substitution: [](#icon-down)' + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
+					info += ' [](#icon-up)' + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
+				body += info + '\n\n'
+		return body
+	except urllib2.HTTPError:
+		return ""
 	
 def findWiziwigID(team1,team2):
 	t1 = team1.split()
@@ -543,7 +545,7 @@ def createNewThread(team1,team2,reqr,sub):
 		body += '[](#icon-notes-big) ' 
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
-		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + '/live-commentary)*\n\n'
+		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
 		
 		if botstat != 'green':
 			body += '*' + statmsg + '*\n\n'
@@ -708,7 +710,7 @@ def checkAndCreate():
 				
 # update score, scorers
 def updateScore(matchID, t1, t2):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID
 	req = urllib2.Request(lineAddress, headers=hdr)
 	lineWebsite = urllib2.urlopen(req)
 	line_html_enc = lineWebsite.read()
@@ -772,7 +774,7 @@ def updateThreads():
 		lineupIndex = body.index('**LINE-UPS**')
 		bodyTilThen = body[venueIndex:lineupIndex]
 		newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
-		newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + '/live-commentary)*\n\n'
+		newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + ')*\n\n'
 		
 		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
