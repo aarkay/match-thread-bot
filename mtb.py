@@ -315,11 +315,11 @@ def findWiziwigID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<td class="home">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
+		links = re.findall('<td class="home">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
 		for link in links:
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<td class="away">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
+		links = re.findall('<td class="away">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
 		for link in links:
 			linkList.append(link)
 
@@ -345,11 +345,11 @@ def findFirstrowID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
+		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL, re.IGNORECASE)
 		for link in links:	
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
+		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL, re.IGNORECASE)
 		for link in links:
 			linkList.append(link)
 
@@ -375,11 +375,11 @@ def findLiveFootballID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
+		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
 		for link in links:	
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
+		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
 		for link in links:
 			linkList.append(link)
 
@@ -405,11 +405,11 @@ def findBebaTVID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
+		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
 		for link in links:	
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
+		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
 		for link in links:
 			linkList.append(link)
 
@@ -420,23 +420,58 @@ def findBebaTVID(team1,team2):
 	else:
 		logger.info("Couldn't find BebaTV streams for %s vs %s", team1,team2)
 		return 'no match'
+		
+def findStreamSportsID(team1,team2):
+	t1 = team1.split()
+	t2 = team2.split()
+	linkList = []
+	fixAddress = "http://www.streamsports.me/"
+	req = urllib2.Request(fixAddress, headers=hdr)
+	try:
+		fixWebsite = urllib2.urlopen(req)
+	except urllib2.HTTPError, e:
+		logger.error("Couldn't access StreamSports streams for %s vs %s", team1,team2)
+		return 'no match'
+	fix_html = fixWebsite.read()
+	
+	for word in t1:
+		links = re.findall('Open event: <a href="(.*?)" title=".*?' + word + '.*?">', fix_html, re.IGNORECASE)
+		for link in links:	
+			linkList.append(link)
+	for word in t2:
+		links = re.findall('Open event: <a href="(.*?)" title=".*?' + word + '.*?">', fix_html, re.IGNORECASE)
+		for link in links:
+			linkList.append(link)
+
+	counts = Counter(linkList)
+	if counts.most_common(1) != []:
+		mode = counts.most_common(1)[0]
+		return mode[0]
+	else:
+		logger.info("Couldn't find StreamSports streams for %s vs %s", team1,team2)
+		return 'no match'
 	
 def findVideoStreams(team1,team2):
 	text = "**Got a stream? Post it here!**\n\n"
-	
-	#wiziID = findWiziwigID(team1,team2)
+
+	streamSportsID = findStreamSportsID(team1,team2)
 	firstrowID = findFirstrowID(team1,team2)
 	liveFootballID = findLiveFootballID(team1,team2)
+	#wiziID = findWiziwigID(team1,team2)
 	#bebaTVID = findBebaTVID(team1,team2)
+
 	
-	#if wiziID != 'no match':
-	#	text += '[wiziwig](http://www.wiziwig.sx/' + wiziID + ')\n\n'
+	if streamSportsID != 'no match':
+		text += '[StreamSports](http://www.streamsports.me' + streamSportsID + ')\n\n'
 	if firstrowID != 'no match':
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
 	if liveFootballID != 'no match':
 		text += '[LiveFootballVideo](' + liveFootballID + ')\n\n'
+	#if wiziID != 'no match':
+	#	text += '[wiziwig](http://www.wiziwig.sx/' + wiziID + ')\n\n'
 	#if bebaTVID != 'no match':
 	#	text += '[BebaTV](http://beba.tv/football/' + bebaTVID + ')\n\n'
+
 
 	text += "Check out /r/soccerstreams for more.\n\n^_____________________________________________________________________\n\n"
 	text += "[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
