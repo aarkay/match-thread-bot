@@ -315,11 +315,11 @@ def findWiziwigID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<td class="home">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
+		links = re.findall('<td class="home">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
 		for link in links:
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<td class="away">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
+		links = re.findall('<td class="away">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
 		for link in links:
 			linkList.append(link)
 
@@ -345,11 +345,11 @@ def findFirstrowID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL, re.IGNORECASE)
+		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
 		for link in links:	
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL, re.IGNORECASE)
+		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
 		for link in links:
 			linkList.append(link)
 
@@ -375,11 +375,11 @@ def findLiveFootballID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
+		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
 		for link in links:	
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
+		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
 		for link in links:
 			linkList.append(link)
 
@@ -405,11 +405,11 @@ def findBebaTVID(team1,team2):
 	fix_html = fixWebsite.read()
 	
 	for word in t1:
-		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
+		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
 		for link in links:	
 			linkList.append(link)
 	for word in t2:
-		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL, re.IGNORECASE)
+		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
 		for link in links:
 			linkList.append(link)
 
