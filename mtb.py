@@ -821,7 +821,7 @@ def updateThreads():
 			finished = True
 		elif getStatus(matchID) == 'PEN':
 			info = getExtraInfo(matchID)
-			if 'won' in info:
+			if 'won' in info or 'win' in info:
 				finished = True
 		
 		# update lineups (sometimes goal.com changes/updates them)
