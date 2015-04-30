@@ -454,15 +454,15 @@ def findStreamSportsID(team1,team2):
 def findVideoStreams(team1,team2):
 	text = "**Got a stream? Post it here!**\n\n"
 
-	#streamSportsID = findStreamSportsID(team1,team2)
+	streamSportsID = findStreamSportsID(team1,team2)
 	firstrowID = findFirstrowID(team1,team2)
 	liveFootballID = findLiveFootballID(team1,team2)
 	#wiziID = findWiziwigID(team1,team2)
 	#bebaTVID = findBebaTVID(team1,team2)
 
 	
-	#if streamSportsID != 'no match':
-	#	text += '[StreamSports](http://www.streamsports.me' + streamSportsID + ')\n\n'
+	if streamSportsID != 'no match':
+		text += '[StreamSports](http://www.streamsports.me' + streamSportsID + ')\n\n'
 	if firstrowID != 'no match':
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
 	if liveFootballID != 'no match':
