@@ -573,7 +573,7 @@ def createNewThread(team1,team2,reqr,sub):
 		if status == 'v':
 			status = "0'"
 		
-		body = '**' + status + ': ' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
+		body = '**' + status + ': ' + t1 + ' vs ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += '[](#icon-stream-big) **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
@@ -587,7 +587,7 @@ def createNewThread(team1,team2,reqr,sub):
 			body += '*' + statmsg + '*\n\n'
 		
 		thread.edit(body)
-		sleep(30)
+		sleep(10)
 		data = site, t1, t2, id, reqr, sub
 		activeThreads.append(data)
 		saveData()
@@ -779,7 +779,7 @@ def updateScore(matchID, t1, t2):
 	
 	text = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	if not goalUpdating:
-		text += '*Sorry, it looks like goal.com will be providing little to no match updates for this game.*\n\n'
+		text += '*goal.com might not be providing match updates for this game.*\n\n'
 	
 	if info != '':
 		text += '***' + info + '***\n\n'
