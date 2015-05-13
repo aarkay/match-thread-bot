@@ -788,7 +788,7 @@ def updateScore(matchID, t1, t2):
 	if leftScorers != []:
 		left += "*" + t1 + " scorers: "
 		for scorer in leftScorers:
-			scorer.replace('&nbsp;',' ')
+			scorer = scorer.replace('&nbsp;',' ')
 			left += scorer + ", "
 		left = left[0:-2] + "*"
 		
@@ -796,7 +796,7 @@ def updateScore(matchID, t1, t2):
 	if rightScorers != []:
 		right += "*" + t2 + " scorers: "
 		for scorer in rightScorers:
-			scorer.replace('&nbsp;',' ')
+			scorer = scorer.replace('&nbsp;',' ')
 			right += scorer + ", "
 		right = right[0:-2] + "*"
 		
