@@ -67,7 +67,7 @@ def setup():
 		f.close()
 		r = praw.Reddit(user_agent)
 		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
-		return admin,username,password,subreddit,user_agent,id,secret,redirect
+		return r,admin,username,password,subreddit,user_agent,id,secret,redirect
 	except:
 		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
 		logger.exception("[SETUP ERROR:]")
@@ -883,7 +883,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
+r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
 
 logger.info("[STARTUP]")
 print getTimestamp() + "[STARTUP]"
