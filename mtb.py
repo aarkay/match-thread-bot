@@ -82,10 +82,7 @@ def OAuth_login():
 		token_data = response.json( )
 		all_scope = set(['identity','edit','flair','history','modconfig','modflair','modlog','modposts','modwiki','mysubreddits','privatemessages','read','report','save','submit','subscribe','vote','wikiedit','wikiread'])
 		r.set_access_credentials( all_scope, token_data[ 'access_token' ])
-		if r.is_oauth_session():
-			print "OAuth session opened as /u/" + r.get_me().name
-		else:
-			print "OAuth failed"
+		print "OAuth session opened as /u/" + r.get_me().name
 	except:
 		print getTimestamp() + "OAuth error, check log file\n"
 		logger.exception("[OAUTH ERROR:]")
@@ -887,12 +884,11 @@ handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
-r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
-
 logger.info("[STARTUP]")
 print getTimestamp() + "[STARTUP]"
 
+r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
+OAuth_login()
 readData()
 
 running = True
