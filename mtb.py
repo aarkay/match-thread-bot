@@ -78,6 +78,7 @@ def setup():
 		return r,admin,username,password,subreddit
 	except:
 		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
+		logger.exception("[SETUP ERROR:]")
 		sleep(10)
 	
 # save activeThreads
