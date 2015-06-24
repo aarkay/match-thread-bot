@@ -63,22 +63,27 @@ def getTimestamp():
 def setup():
 	try:
 		f = open('login.txt')
-		admin,username,password,subreddit,user_agent,id,secret,redirect,refresh = f.readline().split('||',9)
+		admin,username,password,subreddit,user_agent,id,secret,redirect = f.readline().split('||',8)
 		f.close()
-		
 		r = praw.Reddit(user_agent)
 		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
+		return admin,username,password,subreddit,user_agent,id,secret,redirect
+	except:
+		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
+		logger.exception("[SETUP ERROR:]")
+		sleep(10)
+		
+def OAuth_login():
+	try:
 		client_auth = requests.auth.HTTPBasicAuth( id, secret )
 		headers = { 'user-agent': user_agent }
 		post_data = { "grant_type": "password", "username": username, "password": password }
 		response = requests.post( "https://www.reddit.com/api/v1/access_token",auth = client_auth,data = post_data,headers = headers)
 		token_data = response.json( )
 		r.set_access_credentials( token_data[ 'scope' ], token_data[ 'access_token' ])	
-		
-		return r,admin,username,subreddit,refresh
 	except:
-		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
-		logger.exception("[SETUP ERROR:]")
+		print getTimestamp() + "OAuth error, check log file"
+		logger.exception("[OAUTH ERROR:]")
 		sleep(10)
 	
 # save activeThreads
@@ -878,7 +883,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-r,admin,username,subreddit,refresh = setup()
+admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
 
 logger.info("[STARTUP]")
 print getTimestamp() + "[STARTUP]"
@@ -897,8 +902,8 @@ while running:
 		running = False
 	except praw.errors.OAuthInvalidToken:
 		print getTimestamp() + "Token expired, refreshing"
-		logger.exception("[OAUTH:]")
-		r.refresh_access_information(refresh_token = refresh, update_session = True)
+		logger.exception("[EXPIRED TOKEN:]")
+		OAuth_login()
 	except praw.errors.APIException:
 		print getTimestamp() + "API error, check log file"
 		logger.exception("[API ERROR:]")
