@@ -63,7 +63,7 @@ def getTimestamp():
 def setup():
 	try:
 		f = open('login.txt')
-		admin,username,password,subreddit,user_agent,id,secret,redirect = f.readline().split('||',8)
+		admin,username,password,subreddit,user_agent,id,secret,redirect,refresh = f.readline().split('||',9)
 		f.close()
 		
 		r = praw.Reddit(user_agent)
@@ -71,11 +71,11 @@ def setup():
 		client_auth = requests.auth.HTTPBasicAuth( id, secret )
 		headers = { 'user-agent': user_agent }
 		post_data = { "grant_type": "password", "username": username, "password": password }
-		response = requests.post( "https://www.reddit.com/api/v1/access_token",auth = client_auth,data = post_data,headers = headers,duration = permanent)
+		response = requests.post( "https://www.reddit.com/api/v1/access_token",auth = client_auth,data = post_data,headers = headers)
 		token_data = response.json( )
-		r.set_access_credentials( token_data[ 'scope' ], token_data[ 'access_token' ], token_data[ 'refresh_token' ] )	
+		r.set_access_credentials( token_data[ 'scope' ], token_data[ 'access_token' ])	
 		
-		return r,admin,username,password,subreddit
+		return r,admin,username,subreddit,refresh
 	except:
 		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
 		logger.exception("[SETUP ERROR:]")
@@ -878,7 +878,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-r,admin,username,subreddit = setup()
+r,admin,username,subreddit,refresh = setup()
 
 logger.info("[STARTUP]")
 print getTimestamp() + "[STARTUP]"
@@ -895,6 +895,10 @@ while running:
 		logger.info("[MANUAL SHUTDOWN]")
 		print getTimestamp() + "[MANUAL SHUTDOWN]\n"
 		running = False
+	except praw.errors.OAuthInvalidToken:
+		print getTimestamp() + "Token expired, refreshing"
+		logger.exception("[OAUTH:]")
+		r.refresh_access_information(refresh_token = refresh, update_session = True)
 	except praw.errors.APIException:
 		print getTimestamp() + "API error, check log file"
 		logger.exception("[API ERROR:]")
