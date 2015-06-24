@@ -84,7 +84,7 @@ def OAuth_login():
 		r.set_access_credentials( all_scope, token_data[ 'access_token' ])
 		if r.is_oauth_session():
 			print "OAuth session opened as /u/" + r.get_me().name
-		else
+		else:
 			print "OAuth failed"
 	except:
 		print getTimestamp() + "OAuth error, check log file\n"
