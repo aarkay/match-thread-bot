@@ -69,7 +69,7 @@ def setup():
 		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
 		return r,admin,username,password,subreddit,user_agent,id,secret,redirect
 	except:
-		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
+		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)\n"
 		logger.exception("[SETUP ERROR:]")
 		sleep(10)
 		
@@ -81,9 +81,13 @@ def OAuth_login():
 		response = requests.post( "https://www.reddit.com/api/v1/access_token",auth = client_auth,data = post_data,headers = headers)
 		token_data = response.json( )
 		all_scope = set(['identity','edit','flair','history','modconfig','modflair','modlog','modposts','modwiki','mysubreddits','privatemessages','read','report','save','submit','subscribe','vote','wikiedit','wikiread'])
-		r.set_access_credentials( all_scope, token_data[ 'access_token' ])	
+		r.set_access_credentials( all_scope, token_data[ 'access_token' ])
+		if r.is_oauth_session():
+			print "OAuth session opened as /u/" + r.get_me().name
+		else
+			print "OAuth failed"
 	except:
-		print getTimestamp() + "OAuth error, check log file"
+		print getTimestamp() + "OAuth error, check log file\n"
 		logger.exception("[OAUTH ERROR:]")
 		sleep(10)
 	
