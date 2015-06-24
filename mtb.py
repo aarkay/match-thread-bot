@@ -1,4 +1,4 @@
-import praw,urllib2,cookielib,re,logging,logging.handlers,datetime
+import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth
 from collections import Counter
 from time import sleep
 
@@ -54,24 +54,32 @@ usrblacklist = ['dbawbaby',
 usrwhitelist = ['Omar_Til_Death']
 
 def getTimestamp():
-		dt = str(datetime.datetime.now().month) + '/' + str(datetime.datetime.now().day) + ' '
-		hr = str(datetime.datetime.now().hour) if len(str(datetime.datetime.now().hour)) > 1 else '0' + str(datetime.datetime.now().hour)
-		min = str(datetime.datetime.now().minute) if len(str(datetime.datetime.now().minute)) > 1 else '0' + str(datetime.datetime.now().minute)
-		t = '[' + hr + ':' + min + '] '
-		return dt + t
+	dt = str(datetime.datetime.now().month) + '/' + str(datetime.datetime.now().day) + ' '
+	hr = str(datetime.datetime.now().hour) if len(str(datetime.datetime.now().hour)) > 1 else '0' + str(datetime.datetime.now().hour)
+	min = str(datetime.datetime.now().minute) if len(str(datetime.datetime.now().minute)) > 1 else '0' + str(datetime.datetime.now().minute)
+	t = '[' + hr + ':' + min + '] '
+	return dt + t
 
-def login():
+def setup():
 	try:
 		f = open('login.txt')
-		admin,username,password,subreddit,user_agent = f.readline().split(':',5)
-		r = praw.Reddit(user_agent)
-		r.login(username,password)
+		admin,username,password,subreddit,user_agent,id,secret,redirect = f.readline().split('||',8)
 		f.close()
-		return r,subreddit,admin,username
+		
+		r = praw.Reddit(user_agent)
+		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
+		client_auth = requests.auth.HTTPBasicAuth( id, secret )
+		headers = { 'user-agent': user_agent }
+		post_data = { "grant_type": "password", "username": username, "password": password }
+		response = requests.post( "https://www.reddit.com/api/v1/access_token",auth = client_auth,data = post_data,headers = headers,duration = permanent)
+		token_data = response.json( )
+		r.set_access_credentials( token_data[ 'scope' ], token_data[ 'access_token' ], token_data[ 'refresh_token' ] )	
+		
+		return r,admin,username,password,subreddit
 	except:
-		print getTimestamp() + "Login error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
+		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)"
 		sleep(10)
-
+	
 # save activeThreads
 def saveData():
 	f = open('active_threads.txt', 'w+')
@@ -861,7 +869,6 @@ def updateThreads():
 		saveData()
 		
 
-r,subreddit,admin,username = login()
 
 logger = logging.getLogger('a')
 logger.setLevel(logging.ERROR)
