@@ -80,7 +80,8 @@ def OAuth_login():
 		post_data = { "grant_type": "password", "username": username, "password": password }
 		response = requests.post( "https://www.reddit.com/api/v1/access_token",auth = client_auth,data = post_data,headers = headers)
 		token_data = response.json( )
-		r.set_access_credentials( token_data[ 'scope' ], token_data[ 'access_token' ])	
+		all_scope = set(['identity','edit','flair','history','modconfig','modflair','modlog','modposts','modwiki','mysubreddits','privatemessages','read','report','save','submit','subscribe','vote','wikiedit','wikiread'])
+		r.set_access_credentials( all_scope, token_data[ 'access_token' ])	
 	except:
 		print getTimestamp() + "OAuth error, check log file"
 		logger.exception("[OAUTH ERROR:]")
