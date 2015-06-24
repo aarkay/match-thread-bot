@@ -869,6 +869,7 @@ def updateThreads():
 		saveData()
 		
 
+r,admin,username,subreddit = setup()
 
 logger = logging.getLogger('a')
 logger.setLevel(logging.ERROR)
