@@ -868,9 +868,6 @@ def updateThreads():
 		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), getRid[1], getRid[2], getRid[5])
 		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2] + " (/r/" + getRid[5] + ")"
 		saveData()
-		
-
-r,admin,username,subreddit = setup()
 
 logger = logging.getLogger('a')
 logger.setLevel(logging.ERROR)
@@ -880,6 +877,8 @@ handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+r,admin,username,subreddit = setup()
 
 logger.info("[STARTUP]")
 print getTimestamp() + "[STARTUP]"
