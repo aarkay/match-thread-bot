@@ -82,7 +82,7 @@ def OAuth_login():
 		token_data = response.json( )
 		all_scope = set(['identity','edit','flair','history','modconfig','modflair','modlog','modposts','modwiki','mysubreddits','privatemessages','read','report','save','submit','subscribe','vote','wikiedit','wikiread'])
 		r.set_access_credentials( all_scope, token_data[ 'access_token' ])
-		print "OAuth session opened as /u/" + r.get_me().name
+		print getTimestamp() + "OAuth session opened as /u/" + r.get_me().name
 	except:
 		print getTimestamp() + "OAuth error, check log file\n"
 		logger.exception("[OAUTH ERROR:]")
