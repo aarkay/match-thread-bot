@@ -53,6 +53,9 @@ usrblacklist = ['dbawbaby',
 # allowed to make multiple threads
 usrwhitelist = ['Omar_Til_Death']
 
+# markup constants
+goal=0;pgoal=1;ogoal=2;mpen=3;yel=4;syel=5;red=6;sub=7;subo=8;subi=9;strms=10;lines=11;evnts=12
+
 def getTimestamp():
 	dt = str(datetime.datetime.now().month) + '/' + str(datetime.datetime.now().day) + ' '
 	hr = str(datetime.datetime.now().hour) if len(str(datetime.datetime.now().hour)) > 1 else '0' + str(datetime.datetime.now().hour)
@@ -114,6 +117,13 @@ def readData():
 			print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 	f.close()
 
+def loadMarkup(subreddit):
+	try:
+		markup = [line.rstrip('\n') for line in open(subreddit + '.txt')]
+	except:
+		markup = [line.rstrip('\n') for line in open('soccer.txt')]
+	return markup
+	
 def getBotStatus():
 	thread = r.get_submission(submission_id = '22ah8i')
 	status = re.findall('bar-10-(.*?)\)',thread.selftext)
@@ -250,7 +260,8 @@ def findScoreSide(time,left,right):
 		return 'right'
 	return 'none'
 
-def grabEvents(matchID,left,right):
+def grabEvents(matchID,left,right,sub):
+	markup = loadMarkup(sub)
 	try:
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
 		req = urllib2.Request(lineAddress, headers=hdr)
@@ -284,11 +295,13 @@ def grabEvents(matchID,left,right):
 				if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
 					if tag.lower() == 'goal':
 						event = event[:4] + ' ' + event[4:]
+						info += markup[goal] + ' **' + event + '**'
 					elif tag.lower() == 'penalty-goal':
 						event = event[:12] + ' ' + event[12:]
+						info += markup[pgoal] + ' **' + event + '**'
 					else:
 						event = event[:8] + ' ' + event[8:]
-					info += '[](#icon-ball) **' + event + '**'
+						info += markup[ogoal] + ' **' + event + '**'
 					if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 						L += 1
 					elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
@@ -299,19 +312,19 @@ def grabEvents(matchID,left,right):
 						info += ' **' + str(L) + '-' + str(R) + '**'
 				if tag.lower() == 'missed-penalty':
 					event = event[:14] + ' ' + event[14:]
-					info += '[](#icon-red-ball) **' + event + '**'
+					info += markup[mpen] + ' **' + event + '**'
 				if tag.lower() == 'yellow-card':
 					event = event[:11] + ' ' + event[11:]
-					info += '[](#icon-yellow) ' + event
+					info += markup[yel] + ' ' + event
 				if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
-					if tag.lower() == 'red-card':
-						event = event[:8] + ' ' + event[8:]
-					else:
-						event = event[:10] + ' ' + event[10:]
-					info += '[](#icon-red) ' + event
+					event = event[:8] + ' ' + event[8:]
+					info += markup[red] + ' ' + event
+				if tag.lower() == 'yellow-red':
+					event = event[:10] + ' ' + event[10:]
+					info += markup[syel] + ' ' + event
 				if tag.lower() == 'substitution':
-					info += '[](#icon-sub) Substitution: [](#icon-down)' + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
-					info += ' [](#icon-up)' + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
+					info += markup[sub] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
+					info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 				body += info + '\n\n'
 		return body
 	except urllib2.HTTPError:
@@ -588,16 +601,18 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		if status == 'v':
 			status = "0'"
+			
+		markup = loadMarkup(sub)
 		
 		body = '**' + status + ': ' + t1 + ' vs ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
-		body += '[](#icon-stream-big) **STREAMS**\n\n'
+		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
 		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
-		body += '[](#icon-notes-big) ' 
+		body += markup[lines] + ' ' 
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
-		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
+		body += '\n\n------------\n\n' + markup[evts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
 		
 		if botstat != 'green':
 			body += '*' + statmsg + '*\n\n'
@@ -622,15 +637,16 @@ def createMatchInfo(team1,team2):
 	if site != 'no match':
 		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
 		
+		markup = loadMarkup('soccer')
 		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
-		body += '[](#icon-stream-big) **STREAMS**\n\n'
+		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
 		body += '[Reddit comments stream](LINK-TO-REDDIT-STREAM-HERE)\n\n---------\n\n'
-		body += '[](#icon-notes-big) ' 
+		body += markup[lines] + ' ' 
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
-		body += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS**\n\n'
+		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS**\n\n'
 		
 		logger.info("Provided info for %s vs %s", t1, t2)
 		print getTimestamp() + "Provided info for " + t1 + " vs " + t2
@@ -831,6 +847,8 @@ def updateThreads():
 		thread = r.get_submission(submission_id = thread_id)
 		body = thread.selftext
 		venueIndex = body.index('**Venue:**')
+
+		markup = loadMarkup(subreddit)
 		
 		# detect if finished
 		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'AET':
@@ -845,7 +863,7 @@ def updateThreads():
 		lineupIndex = body.index('**LINE-UPS**')
 		bodyTilThen = body[venueIndex:lineupIndex]
 		newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
-		newbody += '\n\n------------\n\n[](#icon-net-big) **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + ')*\n\n'
+		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + ')*\n\n'
 		
 		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
@@ -855,7 +873,7 @@ def updateThreads():
 		score,left,right = updateScore(matchID,team1,team2)
 		newbody = score + '\n\n--------\n\n' + newbody
 		
-		events = grabEvents(matchID,left,right)
+		events = grabEvents(matchID,left,right,sub)
 		newbody += '\n\n' + events
 
 		# save data
@@ -903,7 +921,6 @@ while running:
 		running = False
 	except praw.errors.OAuthInvalidToken:
 		print getTimestamp() + "Token expired, refreshing"
-		logger.exception("[EXPIRED TOKEN:]")
 		OAuth_login()
 	except praw.errors.APIException:
 		print getTimestamp() + "API error, check log file"
