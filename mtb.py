@@ -54,7 +54,7 @@ usrblacklist = ['dbawbaby',
 usrwhitelist = ['Omar_Til_Death']
 
 # markup constants
-goal=0;pgoal=1;ogoal=2;mpen=3;yel=4;syel=5;red=6;sub=7;subo=8;subi=9;strms=10;lines=11;evnts=12
+goal=0;pgoal=1;ogoal=2;mpen=3;yel=4;syel=5;red=6;subst=7;subo=8;subi=9;strms=10;lines=11;evnts=12
 
 def getTimestamp():
 	dt = str(datetime.datetime.now().month) + '/' + str(datetime.datetime.now().day) + ' '
@@ -323,7 +323,7 @@ def grabEvents(matchID,left,right,sub):
 					event = event[:10] + ' ' + event[10:]
 					info += markup[syel] + ' ' + event
 				if tag.lower() == 'substitution':
-					info += markup[sub] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
+					info += markup[subst] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
 					info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 				body += info + '\n\n'
 		return body
