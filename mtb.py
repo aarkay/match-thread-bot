@@ -612,7 +612,7 @@ def createNewThread(team1,team2,reqr,sub):
 		body += markup[lines] + ' ' 
 		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
-		body += '\n\n------------\n\n' + markup[evts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
+		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
 		
 		if botstat != 'green':
 			body += '*' + statmsg + '*\n\n'
