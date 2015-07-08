@@ -29,26 +29,10 @@ hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML,
 activeThreads = []
 notify = False
 
-# obvious attempts at abuse + mod requests
-subblacklist = ['subreddit',
-				'all',
-				'gaming',
-				'pics',
-				'funny',
-				'videos',
-				'adviceanimals',
-				'politics',
-				'iama',
-				'gifs',
-				'worldnews',
-				'aww',
-				'askreddit',
-				'cringe',
-				'atheism']
-
 # naughty list				
 usrblacklist = ['dbawbaby',
-				'12F12']
+				'12F12',
+				'KYAmiibro']
 				
 # allowed to make multiple threads
 usrwhitelist = ['Omar_Til_Death']
@@ -123,6 +107,16 @@ def loadMarkup(subreddit):
 	except:
 		markup = [line.rstrip('\n') for line in open('soccer.txt')]
 	return markup
+	
+def getRelatedSubreddits():
+	page = r.get_wiki_page('soccer','relatedsubreddits').content_md
+	subs = re.findall('/r/(.*?) ',page,re.DOTALL)
+	subs = [s.replace('\r','') for s in subs]
+	subs = [s.replace('\n','') for s in subs]
+	subs = [s.replace('*','') for s in subs]
+	subs = [s.replace('#','') for s in subs]
+	return subs
+	
 	
 def getBotStatus():
 	thread = r.get_submission(submission_id = '22ah8i')
@@ -545,10 +539,11 @@ def createNewThread(team1,team2,reqr,sub):
 			logger.info("Denied %s vs %s request - status set to red", t1, t2)
 			return 8,''
 		
-		# don't post to a subreddit if it's blacklisted
-		if sub in subblacklist:
-			print getTimestamp() + "Denied post request to " + sub + " - blacklisted"
-			logger.info("Denied post request to %s - blacklisted", sub)
+		# only post to related subreddits
+		relatedsubs = getRelatedSubreddits()
+		if sub not in relatedsubs:
+			print getTimestamp() + "Denied post request to " + sub + " - not related"
+			logger.info("Denied post request to %s - not related", sub)
 			return 6,''
 		
 		# don't post if user is blacklisted
