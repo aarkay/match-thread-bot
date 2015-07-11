@@ -311,7 +311,7 @@ def grabEvents(matchID,left,right,sub):
 				if tag.lower() == 'yellow-card':
 					event = event[:11] + ' ' + event[11:]
 					info += markup[yel] + ' ' + event
-				if tag.lower() == 'red-card' or tag.lower() == 'yellow-red':
+				if tag.lower() == 'red-card':
 					event = event[:8] + ' ' + event[8:]
 					info += markup[red] + ' ' + event
 				if tag.lower() == 'yellow-red':
