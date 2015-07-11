@@ -115,6 +115,7 @@ def getRelatedSubreddits():
 	subs = [s.replace('\n','') for s in subs]
 	subs = [s.replace('*','') for s in subs]
 	subs = [s.replace('#','') for s in subs]
+	subs.append(u'MatchThreadderTest')
 	return subs
 	
 	
