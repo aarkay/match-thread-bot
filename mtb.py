@@ -116,6 +116,7 @@ def getRelatedSubreddits():
 	subs = [s.replace('*','') for s in subs]
 	subs = [s.replace('#','') for s in subs]
 	subs.append(u'matchthreaddertest')
+	subs = [x.lower() for x in subs]
 	return subs
 	
 def getBotStatus():
