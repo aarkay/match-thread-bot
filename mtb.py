@@ -547,7 +547,7 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		# only post to related subreddits
 		relatedsubs = getRelatedSubreddits()
-		if sub not in relatedsubs:
+		if sub.lower() not in relatedsubs:
 			print getTimestamp() + "Denied post request to " + sub + " - not related"
 			logger.info("Denied post request to %s - not related", sub)
 			return 6,''
@@ -589,7 +589,7 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		vidcomment = findVideoStreams(team1,team2)
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
-		if sub == 'soccer' and comp != '':
+		if sub.lower() == 'soccer' and comp != '':
 			title = title + ' [' + comp + ']'
 		result,thread = submitThread(sub,title)
 		
