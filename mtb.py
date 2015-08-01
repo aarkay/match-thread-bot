@@ -118,7 +118,6 @@ def getRelatedSubreddits():
 	subs.append(u'MatchThreadderTest')
 	return subs
 	
-	
 def getBotStatus():
 	thread = r.get_submission(submission_id = '22ah8i')
 	status = re.findall('bar-10-(.*?)\)',thread.selftext)
@@ -228,9 +227,15 @@ def getGDCinfo(matchID):
 	else:
 		ref = '?'
 		
+	comp = re.findall('<h3 itemprop="superEvent">(.*?)<', line_html, re.DOTALL)
+	if comp != []:
+		comp = comp[0]
+	else:
+		comp = ''
+		
 	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 		
-	return (team1fix,team2fix,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,status)
+	return (team1fix,team2fix,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,status,comp)
 	
 def writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
 	body += '**LINE-UPS**\n\n**' + t1 + '**\n\n'
@@ -531,7 +536,7 @@ def submitThread(sub,title):
 def createNewThread(team1,team2,reqr,sub):	
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
-		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
+		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
 		
 		botstat,statmsg = getBotStatus()
 		# don't make a post if there's some fatal error
@@ -584,6 +589,8 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		vidcomment = findVideoStreams(team1,team2)
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
+		if comp != '':
+			title = title + ' [' + comp + ']'
 		result,thread = submitThread(sub,title)
 		
 		# if subreddit was invalid, notify
@@ -631,7 +638,7 @@ def createNewThread(team1,team2,reqr,sub):
 def createMatchInfo(team1,team2):
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
-		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status = getGDCinfo(site)
+		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
 		
 		markup = loadMarkup('soccer')
 		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
@@ -739,7 +746,7 @@ def checkAndCreate():
 			if threadStatus == 5: # invalid subreddit
 				msg.reply("Sorry, I couldn't post to /r/" + sub + ". It may not exist, or I may have hit a posting limit.")
 			if threadStatus == 6: # sub blacklisted
-				msg.reply("Sorry, I cannot post to /r/" + sub + ". Please contact the subreddit mods if you'd like more info.")
+				msg.reply("Sorry, I can't post to /r/" + sub + ". Please message /u/" + admin + " if you think this is a mistake.")
 			if threadStatus == 7: # thread limit
 				msg.reply("Sorry, you can only have one active thread request at a time.")
 			if threadStatus == 8: # status set to red
