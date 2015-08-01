@@ -589,7 +589,7 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		vidcomment = findVideoStreams(team1,team2)
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
-		if comp != '':
+		if sub == 'soccer' and comp != '':
 			title = title + ' [' + comp + ']'
 		result,thread = submitThread(sub,title)
 		
