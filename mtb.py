@@ -1,4 +1,4 @@
-import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth
+import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys
 from collections import Counter
 from time import sleep
 
@@ -100,6 +100,13 @@ def readData():
 			logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
 			print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 	f.close()
+	
+def resetAll():
+	for data in activeThreads:
+		activeThreads.remove(data)
+		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), data[1], data[2], data[5])
+		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + data[1] + " vs " + data[2] + " (/r/" + data[5] + ")"
+		saveData()
 
 def loadMarkup(subreddit):
 	try:
@@ -117,6 +124,8 @@ def getRelatedSubreddits():
 	subs = [s.replace('#','') for s in subs]
 	subs.append(u'matchthreaddertest')
 	subs.append(u'mlslounge')
+	subs.append(u'wycombewanderersfc')
+	subs.append(u'halamadrid')
 	subs = [x.lower() for x in subs]
 	return subs
 	
@@ -915,6 +924,10 @@ print getTimestamp() + "[STARTUP]"
 r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
 OAuth_login()
 readData()
+
+if len(sys.argv) > 1:
+	if sys.argv[1] == 'reset':
+		resetAll()
 
 running = True
 while running:
