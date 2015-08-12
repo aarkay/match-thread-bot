@@ -102,7 +102,8 @@ def readData():
 	f.close()
 	
 def resetAll():
-	for data in activeThreads:
+	removeList = activeThreads
+	for data in removeList:
 		activeThreads.remove(data)
 		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), data[1], data[2], data[5])
 		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + data[1] + " vs " + data[2] + " (/r/" + data[5] + ")"
