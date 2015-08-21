@@ -36,7 +36,8 @@ usrblacklist = ['dbawbaby',
 				'KYAmiibro']
 				
 # allowed to make multiple threads
-usrwhitelist = ['Omar_Til_Death']
+usrwhitelist = ['spawnofyanni',
+				'Omar_Til_Death']
 
 # markup constants
 goal=0;pgoal=1;ogoal=2;mpen=3;yel=4;syel=5;red=6;subst=7;subo=8;subi=9;strms=10;lines=11;evnts=12
@@ -161,6 +162,25 @@ def findGoalSite(team1, team2):
 	else:
 		return 'no match'
 		
+def getTeamIDs(matchID):
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID
+	req = urllib2.Request(lineAddress, headers=hdr)
+	lineWebsite = urllib2.urlopen(req)
+	line_html_enc = lineWebsite.read()
+	line_html = line_html_enc.decode("utf8")	
+	
+	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
+	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
+	if t1id != []:
+		t1id = t1id[0]
+	else:
+		t1id = ''
+	if t2id != []:
+		t2id = t2id[0]
+	else:
+		t2id = ''
+	return t1id,t2id
+		
 def getLineUps(matchID):
 	# try to find line-ups (404 if line-ups not on goal.com yet)
 	try:
@@ -219,16 +239,7 @@ def getGDCinfo(matchID):
 	# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
 	team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
 	team2fix = re.findall('<div class="away" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
-	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
-	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
-	if t1id != []:
-		t1id = t1id[0]
-	else:
-		t1id = ''
-	if t2id != []:
-		t2id = t2id[0]
-	else:
-		t2id = ''
+	t1id,t2id = getTeamIDs(matchID)
 	
 	if team1fix[-1]==' ':
 		team1fix = team1fix[0:-1]
@@ -268,7 +279,7 @@ def getSprite(teamID):
 	except:
 		return ''
 	
-def writeLineUps(sub,body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
+def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub):
 	t1sprite = ''
 	t2sprite = ''
 	if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
@@ -654,13 +665,13 @@ def createNewThread(team1,team2,reqr,sub):
 			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n'
 
 		else:
-			body = '**' + status + ": " +  t1 + 'vs' + t2 + '**\n\n'
+			body = '**' + status + ": " +  t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
 		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
 		body += markup[lines] + ' ' 
-		body = writeLineUps(sub,body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
+		body = writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub)
 		
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
 		
@@ -698,13 +709,13 @@ def createMatchInfo(team1,team2):
 			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n'
 
 		else:
-			body = '**' + status + ": " +  t1 + 'vs' + t2 + '**\n\n'
+			body = '**' + status + ": " +  t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
 		body += '[Reddit comments stream](LINK-TO-REDDIT-STREAM-HERE)\n\n---------\n\n'
 		body += markup[lines] + ' ' 
-		body = writeLineUps('soccer',body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
+		body = writeLineUps('soccer',body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub)
 		
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS**\n\n'
 		
@@ -874,16 +885,7 @@ def updateScore(matchID, t1, t2, sub):
 	leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
 	
-	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
-	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
-	if t1id != []:
-		t1id = t1id[0]
-	else:
-		t1id = ''
-	if t2id != []:
-		t2id = t2id[0]
-	else:
-		t2id = ''
+	t1id,t2id = getTeamIDs(matchID)
 	if sub.lower() == 'soccer':
 		t1sprite = ''
 		t2sprite = ''
@@ -947,7 +949,9 @@ def updateThreads():
 		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 		lineupIndex = body.index('**LINE-UPS**')
 		bodyTilThen = body[venueIndex:lineupIndex]
-		newbody = writeLineUps(sub,bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
+		
+		t1id,t2id = getTeamIDs(matchID)
+		newbody = writeLineUps(sub,bodyTilThen,team1,t1id,team2,t2id,team1Start,team1Sub,team2Start,team2Sub)
 		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + ')*\n\n'
 		
 		botstat,statmsg = getBotStatus()
