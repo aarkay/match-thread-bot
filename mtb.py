@@ -283,15 +283,15 @@ def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Su
 	t1sprite = ''
 	t2sprite = ''
 	if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
-		t1sprite = getSprite(t1id)
-		t2sprite = getSprite(t2id)	
+		t1sprite = getSprite(t1id) + ' '
+		t2sprite = getSprite(t2id) + ' '
 	
-	body += '**LINE-UPS**\n\n**' + t1sprite + ' ' + t1 + '**\n\n'
+	body += '**LINE-UPS**\n\n**' + t1sprite + t1 + '**\n\n'
 	body += ", ".join(x for x in team1Start) + ".\n\n"
 	body += '**Subs:** '
 	body += ", ".join(x for x in team1Sub) + ".\n\n^____________________________\n\n"
 	
-	body += '**' + t2sprite + ' ' +	t2 + '**\n\n'
+	body += '**' + t2sprite + t2 + '**\n\n'
 	body += ", ".join(x for x in team2Start) + ".\n\n"
 	body += '**Subs:** '
 	body += ", ".join(x for x in team2Sub) + "."
