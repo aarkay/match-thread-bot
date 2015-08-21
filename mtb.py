@@ -219,8 +219,16 @@ def getGDCinfo(matchID):
 	# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
 	team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
 	team2fix = re.findall('<div class="away" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
-	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)[0]
-	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)[0]
+	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
+	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
+	if t1id != []:
+		t1id = t1id[0]
+	else:
+		t1id = ''
+	if t2id != []:
+		t2id = t2id[0]
+	else:
+		t2id = ''
 	
 	if team1fix[-1]==' ':
 		team1fix = team1fix[0:-1]
@@ -844,7 +852,7 @@ def getExtraInfo(matchID):
 	return info
 				
 # update score, scorers
-def updateScore(matchID, t1, t2):
+def updateScore(matchID, t1, t2, sub):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
 	req = urllib2.Request(lineAddress, headers=hdr)
 	lineWebsite = urllib2.urlopen(req)
@@ -866,6 +874,16 @@ def updateScore(matchID, t1, t2):
 	leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
 	
+	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
+	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
+	if t1id != []:
+		t1id = t1id[0]
+	else:
+		t1id = ''
+	if t2id != []:
+		t2id = t2id[0]
+	else:
+		t2id = ''
 	if sub.lower() == 'soccer':
 		t1sprite = ''
 		t2sprite = ''
@@ -937,7 +955,7 @@ def updateThreads():
 			newbody += '*Note: ' + statmsg + '*\n\n'
 			
 		# update scorelines
-		score,left,right = updateScore(matchID,team1,team2)
+		score,left,right = updateScore(matchID,team1,team2,sub)
 		newbody = score + '\n\n--------\n\n' + newbody
 		
 		events = grabEvents(matchID,left,right,sub)
