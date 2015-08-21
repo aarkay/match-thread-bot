@@ -286,12 +286,12 @@ def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Su
 		t1sprite = getSprite(t1id)
 		t2sprite = getSprite(t2id)	
 	
-	body += '**LINE-UPS**\n\n**' + t1sprite + t1 + '**\n\n'
+	body += '**LINE-UPS**\n\n**' + t1sprite + ' ' + t1 + '**\n\n'
 	body += ", ".join(x for x in team1Start) + ".\n\n"
 	body += '**Subs:** '
 	body += ", ".join(x for x in team1Sub) + ".\n\n^____________________________\n\n"
 	
-	body += '**' + t2sprite +  t2 + '**\n\n'
+	body += '**' + t2sprite + ' ' +	t2 + '**\n\n'
 	body += ", ".join(x for x in team2Start) + ".\n\n"
 	body += '**Subs:** '
 	body += ", ".join(x for x in team2Sub) + "."
@@ -661,7 +661,7 @@ def createNewThread(team1,team2,reqr,sub):
 			if getSprite(t1id) != '' and getSprite(t2id) != '':
 				t1sprite = getSprite(t1id)
 				t2sprite = getSprite(t2id)
-			body = '##**' + status + ': ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**' + ' vs ' 
+			body = '##**' + status + ':** ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**vs' 
 			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n'
 
 		else:
@@ -705,7 +705,7 @@ def createMatchInfo(team1,team2):
 			if getSprite(t1id) != '' and getSprite(t2id) != '':
 				t1sprite = getSprite(t1id)
 				t2sprite = getSprite(t2id)
-			body = '##**' + status + ': ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**' + ' vs ' 
+			body = '##**' + status + ':** ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**vs' 
 			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n'
 
 		else:
@@ -893,8 +893,8 @@ def updateScore(matchID, t1, t2, sub):
 			t1sprite = getSprite(t1id)
 			t2sprite = getSprite(t2id)
 	
-		text = '##**' + status + ': ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**' + leftScore + '-' + rightScore 
-		text += '**](#bar-3-grey)[**' + t2 +  + '**](#bar-13-white)' + t2sprite + '\n\n' 
+		text = '##**' + status + ':** ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**' + leftScore + '-' + rightScore 
+		text += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white)' + t2sprite + '\n\n' 
 	else:
 		text = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	if not goalUpdating:
