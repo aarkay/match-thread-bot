@@ -646,7 +646,7 @@ def createNewThread(team1,team2,reqr,sub):
 			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n'
 
 		else:
-			body = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+			body = '**' + status + ": " +  t1 + 'vs' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
@@ -690,7 +690,7 @@ def createMatchInfo(team1,team2):
 			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n'
 
 		else:
-			body = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+			body = '**' + status + ": " +  t1 + 'vs' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
