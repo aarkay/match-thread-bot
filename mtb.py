@@ -663,7 +663,7 @@ def createNewThread(team1,team2,reqr,sub):
 				t2sprite = getSprite(t2id)
 #			body = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**vs' 
 #			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n--------\n\n'
-			body = '##**' + status + ': ' + t1sprite + ' ' + t1 + ' vs ' + t2 + ' ' + t2sprite + '**\n\n'
+			body = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' vs ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
 			body = '**' + status + ": " +  t1 + ' vs ' + t2 + '**\n\n'
@@ -708,7 +708,7 @@ def createMatchInfo(team1,team2):
 				t2sprite = getSprite(t2id)
 #			body = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**vs' 
 #			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n--------\n\n'
-			body = '##**' + status + ': ' + t1sprite + ' ' + t1 + ' vs ' + t2 + ' ' + t2sprite + '**\n\n'
+			body = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' vs ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
 			body = '**' + status + ": " +  t1 + ' vs ' + t2 + '**\n\n'
@@ -897,7 +897,7 @@ def updateScore(matchID, t1, t2, sub):
 	
 #		text = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**' + leftScore + '-' + rightScore 
 #		text += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n' 
-		text = '##**' + status + ': ' + t1sprite + ' ' + t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + ' ' + t2sprite + '**\n\n'
+		text = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' ' + leftScore + '-' + rightScore + ' ' + t2sprite + ' ' + t2 + '**\n\n'
 	else:
 		text = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	if not goalUpdating:
