@@ -643,7 +643,7 @@ def createNewThread(team1,team2,reqr,sub):
 			t2sprite = getSprite(t2id)
 		
 		body = '##**' + status + ': ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**' + ' vs ' 
-		body += '**](#bar-3-grey)[**' + t2 +  + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n' 
+		body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
@@ -666,8 +666,8 @@ def createNewThread(team1,team2,reqr,sub):
 		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
 		return 0,id
 	else:
-		print getTimestamp() + "Could not find match info for " + t1 + " vs " + t2
-		logger.info("Could not find match info for %s vs %s", t1, t2)
+		print getTimestamp() + "Could not find match info for " + team1 + " vs " + team2
+		logger.info("Could not find match info for %s vs %s", team1, team2)
 		return 1,''
 
 # if the requester just wants a template		
