@@ -649,7 +649,7 @@ def createNewThread(team1,team2,reqr,sub):
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
 		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
 		body += markup[lines] + ' ' 
-		body = writeLineUps(body,t1,t1sprite,t2,t2sprite,team1Start,team1Sub,team2Start,team2Sub)
+		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
 		
