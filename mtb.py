@@ -260,7 +260,7 @@ def getSprite(teamID):
 	except:
 		return ''
 	
-def writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
+def writeLineUps(sub,body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
 	t1sprite = ''
 	t2sprite = ''
 	if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
@@ -649,7 +649,7 @@ def createNewThread(team1,team2,reqr,sub):
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
 		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
 		body += markup[lines] + ' ' 
-		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
+		body = writeLineUps(sub,body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
 		
@@ -690,7 +690,7 @@ def createMatchInfo(team1,team2):
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
 		body += '[Reddit comments stream](LINK-TO-REDDIT-STREAM-HERE)\n\n---------\n\n'
 		body += markup[lines] + ' ' 
-		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
+		body = writeLineUps('soccer',body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
 		
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS**\n\n'
 		
@@ -914,7 +914,7 @@ def updateThreads():
 		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 		lineupIndex = body.index('**LINE-UPS**')
 		bodyTilThen = body[venueIndex:lineupIndex]
-		newbody = writeLineUps(bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
+		newbody = writeLineUps(sub,bodyTilThen,team1,team2,team1Start,team1Sub,team2Start,team2Sub)
 		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + ')*\n\n'
 		
 		botstat,statmsg = getBotStatus()
