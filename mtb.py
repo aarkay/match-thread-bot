@@ -666,7 +666,7 @@ def createNewThread(team1,team2,reqr,sub):
 			body = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' vs ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
-			body = '**' + status + ": " +  t1 + ' vs ' + t2 + '**\n\n'
+			body = '##**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
@@ -711,7 +711,7 @@ def createMatchInfo(team1,team2):
 			body = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' vs ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
-			body = '**' + status + ": " +  t1 + ' vs ' + t2 + '**\n\n'
+			body = '##**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
@@ -899,7 +899,7 @@ def updateScore(matchID, t1, t2, sub):
 #		text += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n' 
 		text = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' ' + leftScore + '-' + rightScore + ' ' + t2sprite + ' ' + t2 + '**\n\n'
 	else:
-		text = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+		text = '##**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	if not goalUpdating:
 		text += '*goal.com might not be providing match updates for this game.*\n\n'
 	
