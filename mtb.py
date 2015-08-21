@@ -1,4 +1,4 @@
-import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys
+import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys,json
 from collections import Counter
 from time import sleep
 
@@ -219,6 +219,8 @@ def getGDCinfo(matchID):
 	# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
 	team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
 	team2fix = re.findall('<div class="away" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
+	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)[0]
+	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)[0]
 	
 	if team1fix[-1]==' ':
 		team1fix = team1fix[0:-1]
@@ -248,15 +250,29 @@ def getGDCinfo(matchID):
 		
 	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 		
-	return (team1fix,team2fix,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,status,comp)
+	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,status,comp)
+	
+def getSprite(teamID):
+	try:
+		j = r.request_json("https://www.reddit.com/r/soccerbot/wiki/matchthreadder.json")
+		lookups = json.loads(j.content_md)
+		return '[](#' + lookups[teamID] + ')'
+	except:
+		return ''
 	
 def writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub):
-	body += '**LINE-UPS**\n\n**' + t1 + '**\n\n'
+	t1sprite = ''
+	t2sprite = ''
+	if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
+		t1sprite = getSprite(t1id)
+		t2sprite = getSprite(t2id)	
+	
+	body += '**LINE-UPS**\n\n**' + t1sprite + t1 + '**\n\n'
 	body += ", ".join(x for x in team1Start) + ".\n\n"
 	body += '**Subs:** '
 	body += ", ".join(x for x in team1Sub) + ".\n\n^____________________________\n\n"
 	
-	body += '**' + t2 + '**\n\n'
+	body += '**' + t2sprite +  t2 + '**\n\n'
 	body += ", ".join(x for x in team2Start) + ".\n\n"
 	body += '**Subs:** '
 	body += ", ".join(x for x in team2Sub) + "."
@@ -549,7 +565,7 @@ def submitThread(sub,title):
 def createNewThread(team1,team2,reqr,sub):	
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
-		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
+		t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
 		
 		botstat,statmsg = getBotStatus()
 		# don't make a post if there's some fatal error
@@ -620,13 +636,20 @@ def createNewThread(team1,team2,reqr,sub):
 			
 		markup = loadMarkup(sub)
 		
-		body = '**' + status + ': ' + t1 + ' vs ' + t2 + '**\n\n--------\n\n' 
+		t1sprite = ''
+		t2sprite = ''
+		if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
+			t1sprite = getSprite(t1id)
+			t2sprite = getSprite(t2id)
+		
+		body = '##**' + status + ': ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**' + ' vs ' 
+		body += '**](#bar-3-grey)[**' + t2 +  + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
 		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
 		body += markup[lines] + ' ' 
-		body = writeLineUps(body,t1,t2,team1Start,team1Sub,team2Start,team2Sub)
+		body = writeLineUps(body,t1,t1sprite,t2,t2sprite,team1Start,team1Sub,team2Start,team2Sub)
 		
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
 		
@@ -651,10 +674,17 @@ def createNewThread(team1,team2,reqr,sub):
 def createMatchInfo(team1,team2):
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
-		t1, t2, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
+		t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
 		
 		markup = loadMarkup('soccer')
-		body = '**' + t1 + ' 0-0 ' + t2 + '**\n\n--------\n\n' 
+		t1sprite = ''
+		t2sprite = ''
+		if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
+			t1sprite = getSprite(t1id)
+			t2sprite = getSprite(t2id)
+			
+		body = '##**' + status + ': ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**' + ' vs ' 
+		body += '**](#bar-3-grey)[**' + t2 +  + '**](#bar-13-white)' + t2sprite + '\n\n--------\n\n' 
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
@@ -830,7 +860,8 @@ def updateScore(matchID, t1, t2):
 	leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
 	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
 	
-	text = '**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+	text = '##**' + status + ': ' + t1sprite + '[**' + t1 + '**](#bar-13-white)[**' + leftScore + '-' + rightScore 
+	text += '**](#bar-3-grey)[**' + t2 +  + '**](#bar-13-white)' + t2sprite + '\n\n' 
 	if not goalUpdating:
 		text += '*goal.com might not be providing match updates for this game.*\n\n'
 	
