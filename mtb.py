@@ -69,7 +69,7 @@ def OAuth_login():
 		post_data = { "grant_type": "password", "username": username, "password": password }
 		response = requests.post( "https://www.reddit.com/api/v1/access_token",auth = client_auth,data = post_data,headers = headers)
 		token_data = response.json( )
-		all_scope = set(['identity','edit','flair','history','modconfig','modflair','modlog','modposts','modwiki','mysubreddits','privatemessages','read','report','save','submit','subscribe','vote','wikiedit','wikiread'])
+		all_scope = set(['identity','edit','flair','history','mysubreddits','privatemessages','read','save','submit','vote','wikiread'])
 		r.set_access_credentials( all_scope, token_data[ 'access_token' ])
 		print getTimestamp() + "OAuth session opened as /u/" + r.get_me().name
 	except:
@@ -663,10 +663,10 @@ def createNewThread(team1,team2,reqr,sub):
 				t2sprite = getSprite(t2id)
 #			body = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**vs' 
 #			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n--------\n\n'
-			body = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' vs ' + t2sprite + ' ' + t2 + '**\n\n'
+			body = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [vs](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
-			body = '##**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
+			body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](' + vidlink.permalink + ')\n\n'
@@ -708,10 +708,10 @@ def createMatchInfo(team1,team2):
 				t2sprite = getSprite(t2id)
 #			body = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**vs' 
 #			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n--------\n\n'
-			body = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' vs ' + t2sprite + ' ' + t2 + '**\n\n'
+			body = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [vs](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
-			body = '##**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
+			body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
@@ -897,9 +897,9 @@ def updateScore(matchID, t1, t2, sub):
 	
 #		text = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**' + leftScore + '-' + rightScore 
 #		text += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n' 
-		text = '##**' + status + ': ' + t1 + ' ' + t1sprite + ' ' + leftScore + '-' + rightScore + ' ' + t2sprite + ' ' + t2 + '**\n\n'
+		text = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [' + leftScore + '-' + rightScore + '](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 	else:
-		text = '##**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+		text = '#**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 	if not goalUpdating:
 		text += '*goal.com might not be providing match updates for this game.*\n\n'
 	
