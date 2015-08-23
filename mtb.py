@@ -700,18 +700,8 @@ def createMatchInfo(team1,team2):
 		t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
 		
 		markup = loadMarkup('soccer')
-		if sub.lower() == 'soccer':
-			t1sprite = ''
-			t2sprite = ''
-			if getSprite(t1id) != '' and getSprite(t2id) != '':
-				t1sprite = getSprite(t1id)
-				t2sprite = getSprite(t2id)
-#			body = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**vs' 
-#			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n--------\n\n'
-			body = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [vs](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 
-		else:
-			body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
+		body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
 		body += markup[strms] + ' **STREAMS**\n\n'
 		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
