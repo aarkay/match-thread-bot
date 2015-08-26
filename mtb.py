@@ -28,7 +28,7 @@ hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML,
 
 activeThreads = []
 notify = False
-messaging = False
+messaging = True
 
 # naughty list				
 usrblacklist = ['dbawbaby',
