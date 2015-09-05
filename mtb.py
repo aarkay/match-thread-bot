@@ -502,7 +502,7 @@ def findStreamSportsID(team1,team2):
 	t1 = team1.split()
 	t2 = team2.split()
 	linkList = []
-	fixAddress = "http://www.streamsports.me/"
+	fixAddress = "http://www.streamsports.me/football/"
 	req = urllib2.Request(fixAddress, headers=hdr)
 	try:
 		fixWebsite = urllib2.urlopen(req)
@@ -539,7 +539,7 @@ def findVideoStreams(team1,team2):
 
 	
 	if streamSportsID != 'no match':
-		text += '[StreamSports](http://www.streamsports.me' + streamSportsID + ')\n\n'
+		text += '[StreamSports](http://www.streamsports.me/' + streamSportsID + ')\n\n'
 	if firstrowID != 'no match':
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
 	#if liveFootballID != 'no match':
