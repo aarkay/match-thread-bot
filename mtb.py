@@ -533,7 +533,7 @@ def findVideoStreams(team1,team2):
 
 	streamSportsID = findStreamSportsID(team1,team2)
 	firstrowID = findFirstrowID(team1,team2)
-	liveFootballID = findLiveFootballID(team1,team2)
+	#liveFootballID = findLiveFootballID(team1,team2)
 	#wiziID = findWiziwigID(team1,team2)
 	#bebaTVID = findBebaTVID(team1,team2)
 
@@ -542,8 +542,8 @@ def findVideoStreams(team1,team2):
 		text += '[StreamSports](http://www.streamsports.me' + streamSportsID + ')\n\n'
 	if firstrowID != 'no match':
 		text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
-	if liveFootballID != 'no match':
-		text += '[LiveFootballVideo](' + liveFootballID + ')\n\n'
+	#if liveFootballID != 'no match':
+		#text += '[LiveFootballVideo](' + liveFootballID + ')\n\n'
 	#if wiziID != 'no match':
 	#	text += '[wiziwig](http://www.wiziwig.sx/' + wiziID + ')\n\n'
 	#if bebaTVID != 'no match':
