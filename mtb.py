@@ -1008,6 +1008,9 @@ while running:
 	except praw.errors.OAuthInvalidToken:
 		print getTimestamp() + "Token expired, refreshing"
 		OAuth_login()
+	except AssertionError:
+		print getTimestamp() + "Assertion error, refreshing login"
+		OAuth_login()
 	except praw.errors.APIException:
 		print getTimestamp() + "API error, check log file"
 		logger.exception("[API ERROR:]")
