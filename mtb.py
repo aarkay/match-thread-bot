@@ -334,8 +334,7 @@ def grabEvents(matchID,left,right,sub):
 			tag = re.findall('(.*?)"',text,re.DOTALL)[0]
 			if tag.lower() in supportedEvents:
 				time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
-				if time[-1] == ' ':
-					time = time[:-1]
+				time = time.strip()
 				info = "**" + time + "** "
 				event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
 				if event[-1] == ' ':
