@@ -137,50 +137,57 @@ def getBotStatus():
 	
 def findGoalSite(team1, team2):
 	# search for each word in each team name in goal.com's fixture list, return most frequent result
-	t1 = team1.split()
-	t2 = team2.split()
-	linkList = []
-	fixAddress = "http://www.goal.com/en-us/live-scores"
-	#req = urllib2.Request(fixAddress, headers=hdr)
-	#fixWebsite = urllib2.urlopen(req)
-	fixWebsite = requests.get(fixAddress)
-	#fix_html = fixWebsite.read()
-	fix_html = fixWebsite.text
-	links = re.findall('/en-us/match/(.*?)"', fix_html)
-	for link in links:
-		for word in t1:
-			if link.find(word.lower()) != -1:
-				linkList.append(link)
-		for word in t2:
-			if link.find(word.lower()) != -1:
-				linkList.append(link)		
-	counts = Counter(linkList)
-	if counts.most_common(1) != []:
-		mode = counts.most_common(1)[0]
-		return mode[0]
-	else:
+	try:
+		t1 = team1.split()
+		t2 = team2.split()
+		linkList = []
+		fixAddress = "http://www.goal.com/en-us/live-scores"
+		#req = urllib2.Request(fixAddress, headers=hdr)
+		#fixWebsite = urllib2.urlopen(req)
+		#fix_html = fixWebsite.read()
+		fixWebsite = requests.get(fixAddress, timeout=15)
+		fix_html = fixWebsite.text
+		links = re.findall('/en-us/match/(.*?)"', fix_html)
+		for link in links:
+			for word in t1:
+				if link.find(word.lower()) != -1:
+					linkList.append(link)
+			for word in t2:
+				if link.find(word.lower()) != -1:
+					linkList.append(link)		
+		counts = Counter(linkList)
+		if counts.most_common(1) != []:
+			mode = counts.most_common(1)[0]
+			return mode[0]
+		else:
+			return 'no match'
+	except requests.exceptions.Timeout:
 		return 'no match'
+
 		
 def getTeamIDs(matchID):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	#req = urllib2.Request(lineAddress, headers=hdr)
-	#lineWebsite = urllib2.urlopen(req)
-	lineWebsite = requests.get(lineAddress)
-	#line_html_enc = lineWebsite.read()
-	#line_html = line_html_enc.decode("utf8")	
-	line_html = lineWebsite.text
-	
-	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
-	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
-	if t1id != []:
-		t1id = t1id[0]
-	else:
-		t1id = ''
-	if t2id != []:
-		t2id = t2id[0]
-	else:
-		t2id = ''
-	return t1id,t2id
+	try:
+		lineAddress = "http://www.goal.com/en-us/match/" + matchID
+		#req = urllib2.Request(lineAddress, headers=hdr)
+		#lineWebsite = urllib2.urlopen(req)
+		#line_html_enc = lineWebsite.read()
+		#line_html = line_html_enc.decode("utf8")	
+		lineWebsite = requests.get(lineAddress, timeout=15)
+		line_html = lineWebsite.text
+		
+		t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
+		t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
+		if t1id != []:
+			t1id = t1id[0]
+		else:
+			t1id = ''
+		if t2id != []:
+			t2id = t2id[0]
+		else:
+			t2id = ''
+		return t1id,t2id
+	except requests.exceptions.Timeout:
+		return '','' 
 		
 def getLineUps(matchID):
 	# try to find line-ups (404 if line-ups not on goal.com yet)
@@ -188,9 +195,9 @@ def getLineUps(matchID):
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
 		#req = urllib2.Request(lineAddress, headers=hdr)
 		#lineWebsite = urllib2.urlopen(req)
-		lineWebsite = requests.get(lineAddress)
 		#line_html_enc = lineWebsite.read()
 		#line_html = line_html_enc.decode("utf8")
+		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 
 		delim = '<ul class="player-list">'
@@ -224,60 +231,65 @@ def getLineUps(matchID):
 
 # get current match time/status
 def getStatus(matchID):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	#req = urllib2.Request(lineAddress, headers=hdr)
-	#lineWebsite = urllib2.urlopen(req)
-	#line_html = lineWebsite.read()
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
-	lineWebsite = requests.get(lineAddress)
-	line_html = lineWebsite.text
-	status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
-	return status			
+	try:
+		lineAddress = "http://www.goal.com/en-us/match/" + matchID
+		#req = urllib2.Request(lineAddress, headers=hdr)
+		#lineWebsite = urllib2.urlopen(req)
+		#line_html = lineWebsite.read()
+		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
+		lineWebsite = requests.get(lineAddress, timeout=15)
+		line_html = lineWebsite.text
+		status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
+		return status			
+	except requests.exceptions.RequestException:
+		return ''
 	
 # get venue, ref, lineups, etc from goal.com	
 def getGDCinfo(matchID):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	#req = urllib2.Request(lineAddress, headers=hdr)
-	#lineWebsite = urllib2.urlopen(req)
-	#line_html_enc = lineWebsite.read()
-	#line_html = line_html_enc.decode("utf8")
-	lineWebsite = requests.get(lineAddress)
-	line_html = lineWebsite.text
+	
+		lineAddress = "http://www.goal.com/en-us/match/" + matchID
+		#req = urllib2.Request(lineAddress, headers=hdr)
+		#lineWebsite = urllib2.urlopen(req)
+		#line_html_enc = lineWebsite.read()
+		#line_html = line_html_enc.decode("utf8")
+		lineWebsite = requests.get(lineAddress)
+		line_html = lineWebsite.text
 
-	# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
-	team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
-	team2fix = re.findall('<div class="away" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
-	t1id,t2id = getTeamIDs(matchID)
-	
-	if team1fix[-1]==' ':
-		team1fix = team1fix[0:-1]
-	if team2fix[-1]==' ':
-		team2fix = team2fix[0:-1]	
-	
-	status = getStatus(matchID)
-	ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
-	
-	venue = re.findall('<div class="match-header .*?</li>.*?</li>.*? (.*?)</li>', line_html, re.DOTALL)
-	if venue != []:
-		venue = venue[0]
-	else:
-		venue = '?'
+		# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
+		team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
+		team2fix = re.findall('<div class="away" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
+		t1id,t2id = getTeamIDs(matchID)
 		
-	ref = re.findall('Referee: (.*?)</li>', line_html, re.DOTALL)
-	if ref != []:
-		ref = ref[0]	
-	else:
-		ref = '?'
+		if team1fix[-1]==' ':
+			team1fix = team1fix[0:-1]
+		if team2fix[-1]==' ':
+			team2fix = team2fix[0:-1]	
 		
-	comp = re.findall('<h3 itemprop="superEvent">(.*?)<', line_html, re.DOTALL)
-	if comp != []:
-		comp = comp[0]
-	else:
-		comp = ''
+		status = getStatus(matchID)
+		ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
 		
-	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
+		venue = re.findall('<div class="match-header .*?</li>.*?</li>.*? (.*?)</li>', line_html, re.DOTALL)
+		if venue != []:
+			venue = venue[0]
+		else:
+			venue = '?'
+			
+		ref = re.findall('Referee: (.*?)</li>', line_html, re.DOTALL)
+		if ref != []:
+			ref = ref[0]	
+		else:
+			ref = '?'
+			
+		comp = re.findall('<h3 itemprop="superEvent">(.*?)<', line_html, re.DOTALL)
+		if comp != []:
+			comp = comp[0]
+		else:
+			comp = ''
+			
+		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
+			
+		return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,status,comp)
 		
-	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,status,comp)
 	
 def getSprite(teamID):
 	try:
@@ -324,7 +336,7 @@ def grabEvents(matchID,left,right,sub):
 		#lineWebsite = urllib2.urlopen(req)
 		#line_html_enc = lineWebsite.read()
 		#line_html = line_html_enc.decode("utf8")
-		lineWebsite = requests.get(lineAddress)
+		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		
 		body = ""
@@ -861,7 +873,7 @@ def getExtraInfo(matchID):
 	#line_html_enc = lineWebsite.read()
 	#line_html = line_html_enc.decode("utf8")
 	lineWebsite = requests.get(lineAddress)
-	lime_html = lineWebsite.text
+	line_html = lineWebsite.text
 	info = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
 	return info
 				
@@ -873,7 +885,7 @@ def updateScore(matchID, t1, t2, sub):
 	#line_html_enc = lineWebsite.read()
 	#line_html = line_html_enc.decode("utf8")
 	lineWebsite = requests.get(lineAddress)
-	lime_html = lineWebsite.text
+	line_html = lineWebsite.text
 	leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
 	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
 	info = getExtraInfo(matchID)
