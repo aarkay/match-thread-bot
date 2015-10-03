@@ -8,9 +8,6 @@ from time import sleep
 #  urllib2 to urllib
 #  cookielib to http.cookiejar
 #  s = f.read().decode('utf8') line not needed? python 3 decodes automatically
-# fix penalties detection
-#  search subsequent line for "won"
-# x date logging
 # use goal.com to bypass thread request
 # switch from urllib2 to requests maybe
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
@@ -73,7 +70,7 @@ def OAuth_login():
 		r.set_access_credentials( all_scope, token_data[ 'access_token' ])
 		print getTimestamp() + "OAuth session opened as /u/" + r.get_me().name
 	except:
-		print getTimestamp() + "OAuth error, check log file\n"
+		print getTimestamp() + "OAuth error, check log file"
 		logger.exception("[OAUTH ERROR:]")
 		sleep(10)
 	
@@ -144,9 +141,11 @@ def findGoalSite(team1, team2):
 	t2 = team2.split()
 	linkList = []
 	fixAddress = "http://www.goal.com/en-us/live-scores"
-	req = urllib2.Request(fixAddress, headers=hdr)
-	fixWebsite = urllib2.urlopen(req)
-	fix_html = fixWebsite.read()
+	#req = urllib2.Request(fixAddress, headers=hdr)
+	#fixWebsite = urllib2.urlopen(req)
+	fixWebsite = requests.get(fixAddress)
+	#fix_html = fixWebsite.read()
+	fix_html = fixWebsite.text
 	links = re.findall('/en-us/match/(.*?)"', fix_html)
 	for link in links:
 		for word in t1:
@@ -164,10 +163,12 @@ def findGoalSite(team1, team2):
 		
 def getTeamIDs(matchID):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	req = urllib2.Request(lineAddress, headers=hdr)
-	lineWebsite = urllib2.urlopen(req)
-	line_html_enc = lineWebsite.read()
-	line_html = line_html_enc.decode("utf8")	
+	#req = urllib2.Request(lineAddress, headers=hdr)
+	#lineWebsite = urllib2.urlopen(req)
+	lineWebsite = requests.get(lineAddress)
+	#line_html_enc = lineWebsite.read()
+	#line_html = line_html_enc.decode("utf8")	
+	line_html = lineWebsite.text
 	
 	t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
 	t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
@@ -185,10 +186,12 @@ def getLineUps(matchID):
 	# try to find line-ups (404 if line-ups not on goal.com yet)
 	try:
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
-		req = urllib2.Request(lineAddress, headers=hdr)
-		lineWebsite = urllib2.urlopen(req)
-		line_html_enc = lineWebsite.read()
-		line_html = line_html_enc.decode("utf8")
+		#req = urllib2.Request(lineAddress, headers=hdr)
+		#lineWebsite = urllib2.urlopen(req)
+		lineWebsite = requests.get(lineAddress)
+		#line_html_enc = lineWebsite.read()
+		#line_html = line_html_enc.decode("utf8")
+		line_html = lineWebsite.text
 
 		delim = '<ul class="player-list">'
 		split = line_html.split(delim) # [0]:nonsense [1]:t1 XI [2]:t2 XI [3]:t1 subs [4]:t2 subs + managers
@@ -212,7 +215,7 @@ def getLineUps(matchID):
 			team2Sub = ["TBA"]
 		return team1Start,team1Sub,team2Start,team2Sub
 		
-	except urllib2.HTTPError:
+	except requests.exceptions.RequestException:
 		team1Start = ["TBA"]
 		team1Sub = ["TBA"]
 		team2Start = ["TBA"]
@@ -222,19 +225,24 @@ def getLineUps(matchID):
 # get current match time/status
 def getStatus(matchID):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	req = urllib2.Request(lineAddress, headers=hdr)
-	lineWebsite = urllib2.urlopen(req)
-	line_html = lineWebsite.read()
+	#req = urllib2.Request(lineAddress, headers=hdr)
+	#lineWebsite = urllib2.urlopen(req)
+	#line_html = lineWebsite.read()
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
+	lineWebsite = requests.get(lineAddress)
+	line_html = lineWebsite.text
 	status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
 	return status			
 	
 # get venue, ref, lineups, etc from goal.com	
 def getGDCinfo(matchID):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	req = urllib2.Request(lineAddress, headers=hdr)
-	lineWebsite = urllib2.urlopen(req)
-	line_html_enc = lineWebsite.read()
-	line_html = line_html_enc.decode("utf8")
+	#req = urllib2.Request(lineAddress, headers=hdr)
+	#lineWebsite = urllib2.urlopen(req)
+	#line_html_enc = lineWebsite.read()
+	#line_html = line_html_enc.decode("utf8")
+	lineWebsite = requests.get(lineAddress)
+	line_html = lineWebsite.text
 
 	# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
 	team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
@@ -312,10 +320,12 @@ def grabEvents(matchID,left,right,sub):
 	markup = loadMarkup(sub)
 	try:
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
-		req = urllib2.Request(lineAddress, headers=hdr)
-		lineWebsite = urllib2.urlopen(req)
-		line_html_enc = lineWebsite.read()
-		line_html = line_html_enc.decode("utf8")
+		#req = urllib2.Request(lineAddress, headers=hdr)
+		#lineWebsite = urllib2.urlopen(req)
+		#line_html_enc = lineWebsite.read()
+		#line_html = line_html_enc.decode("utf8")
+		lineWebsite = requests.get(lineAddress)
+		line_html = lineWebsite.text
 		
 		body = ""
 		split = line_html.split('<ul class="commentaries') # [0]:nonsense [1]:events
@@ -374,7 +384,7 @@ def grabEvents(matchID,left,right,sub):
 					info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 				body += info + '\n\n'
 		return body
-	except urllib2.HTTPError:
+	except requests.exceptions.RequestException:
 		return ""
 	
 def findWiziwigID(team1,team2):
@@ -382,13 +392,13 @@ def findWiziwigID(team1,team2):
 	t2 = team2.split()
 	linkList = []
 	fixAddress = "http://www.wiziwig.sx/competition.php?part=sports&discipline=football"
-	req = urllib2.Request(fixAddress, headers=hdr)
+	#req = urllib2.Request(fixAddress, headers=hdr)
 	try:
-		fixWebsite = urllib2.urlopen(req)
-	except urllib2.HTTPError, e:
+		fixWebsite = requests.get(fixAddress)
+	except requests.exceptions.RequestException, e:
 		logger.error("Couldn't access wiziwig streams for %s vs %s", team1,team2)
 		return 'no match'
-	fix_html = fixWebsite.read()
+	fix_html = fixWebsite.text
 	
 	for word in t1:
 		links = re.findall('<td class="home">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
@@ -412,13 +422,13 @@ def findFirstrowID(team1,team2):
 	t2 = team2.split()
 	linkList = []
 	fixAddress = "http://ifirstrowus.eu/"
-	req = urllib2.Request(fixAddress, headers=hdr)
+	#req = urllib2.Request(fixAddress, headers=hdr)
 	try:
-		fixWebsite = urllib2.urlopen(req)
-	except urllib2.HTTPError, e:
+		fixWebsite = requests.get(fixAddress)
+	except requests.exceptions.RequestException, e:
 		logger.error("Couldn't access firstrow streams for %s vs %s", team1,team2)
 		return 'no match'
-	fix_html = fixWebsite.read()
+	fix_html = fixWebsite.text
 	
 	for word in t1:
 		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
@@ -442,13 +452,13 @@ def findLiveFootballID(team1,team2):
 	t2 = team2.split()
 	linkList = []
 	fixAddress = "http://livefootballvideo.com/"
-	req = urllib2.Request(fixAddress, headers=hdr)
+	#req = urllib2.Request(fixAddress, headers=hdr)
 	try:
-		fixWebsite = urllib2.urlopen(req)
-	except urllib2.HTTPError, e:
+		fixWebsite = requests.get(fixAddress)
+	except requests.exceptions.RequestException, e:
 		logger.error("Couldn't access LiveFootballVideo streams for %s vs %s", team1,team2)
 		return 'no match'
-	fix_html = fixWebsite.read()
+	fix_html = fixWebsite.text
 	
 	for word in t1:
 		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
@@ -472,13 +482,13 @@ def findBebaTVID(team1,team2):
 	t2 = team2.split()
 	linkList = []
 	fixAddress = "http://beba.tv/football"
-	req = urllib2.Request(fixAddress, headers=hdr)
+	#req = urllib2.Request(fixAddress, headers=hdr)
 	try:
-		fixWebsite = urllib2.urlopen(req)
-	except urllib2.HTTPError, e:
+		fixWebsite = requests.get(fixAddress)
+	except requests.exceptions.RequestException, e:
 		logger.error("Couldn't access BebaTV streams for %s vs %s", team1,team2)
 		return 'no match'
-	fix_html = fixWebsite.read()
+	fix_html = fixWebsite.text
 	
 	for word in t1:
 		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
@@ -502,13 +512,13 @@ def findStreamSportsID(team1,team2):
 	t2 = team2.split()
 	linkList = []
 	fixAddress = "http://www.streamsports.me/football/"
-	req = urllib2.Request(fixAddress, headers=hdr)
+	#req = urllib2.Request(fixAddress, headers=hdr)
 	try:
-		fixWebsite = urllib2.urlopen(req)
-	except urllib2.HTTPError, e:
+		fixWebsite = requests.get(fixAddress)
+	except requests.exceptions.RequestException, e:
 		logger.error("Couldn't access StreamSports streams for %s vs %s", team1,team2)
 		return 'no match'
-	fix_html = fixWebsite.read()
+	fix_html = fixWebsite.text
 	
 	for word in t1:
 		links = re.findall('Open event: <a href="(.*?)" title=".*?' + word + '.*?">', fix_html, re.IGNORECASE)
@@ -595,13 +605,13 @@ def createNewThread(team1,team2,reqr,sub):
 		# only post to related subreddits
 		relatedsubs = getRelatedSubreddits()
 		if sub.lower() not in relatedsubs:
-			print getTimestamp() + "Denied post request to " + sub + " - not related"
+			print getTimestamp() + "Denied post request to /r/" + sub + " - not related"
 			logger.info("Denied post request to %s - not related", sub)
 			return 6,''
 		
 		# don't post if user is blacklisted
 		if reqr in usrblacklist:
-			print getTimestamp() + "Denied post request from " + reqr + " - blacklisted"
+			print getTimestamp() + "Denied post request from /u/" + reqr + " - blacklisted"
 			logger.info("Denied post request from %s - blacklisted", reqr)
 			return 9,''
 		
@@ -609,11 +619,11 @@ def createNewThread(team1,team2,reqr,sub):
 		for d in activeThreads:
 			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
 			if t1 == t1_at and sub == sub_at:
-				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request for " + sub + " - thread already exists"
+				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request for /r/" + sub + " - thread already exists"
 				logger.info("Denied %s vs %s request for %s - thread already exists", t1, t2, sub)
 				return 4,id_at
 			if reqr == reqr_at and reqr not in usrwhitelist:
-				print getTimestamp() + "Denied post request from " + reqr + " - has an active thread request"
+				print getTimestamp() + "Denied post request from /u/" + reqr + " - has an active thread request"
 				logger.info("Denied post request from %s - has an active thread request", reqr)
 				return 7,''
 		
@@ -846,20 +856,24 @@ def checkAndCreate():
 				
 def getExtraInfo(matchID):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	req = urllib2.Request(lineAddress, headers=hdr)
-	lineWebsite = urllib2.urlopen(req)
-	line_html_enc = lineWebsite.read()
-	line_html = line_html_enc.decode("utf8")
+	#req = urllib2.Request(lineAddress, headers=hdr)
+	#lineWebsite = urllib2.urlopen(req)
+	#line_html_enc = lineWebsite.read()
+	#line_html = line_html_enc.decode("utf8")
+	lineWebsite = requests.get(lineAddress)
+	lime_html = lineWebsite.text
 	info = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
 	return info
 				
 # update score, scorers
 def updateScore(matchID, t1, t2, sub):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	req = urllib2.Request(lineAddress, headers=hdr)
-	lineWebsite = urllib2.urlopen(req)
-	line_html_enc = lineWebsite.read()
-	line_html = line_html_enc.decode("utf8")
+	#req = urllib2.Request(lineAddress, headers=hdr)
+	#lineWebsite = urllib2.urlopen(req)
+	#line_html_enc = lineWebsite.read()
+	#line_html = line_html_enc.decode("utf8")
+	lineWebsite = requests.get(lineAddress)
+	lime_html = lineWebsite.text
 	leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
 	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
 	info = getExtraInfo(matchID)
