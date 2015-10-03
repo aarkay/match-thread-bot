@@ -605,7 +605,13 @@ def submitThread(sub,title):
 def createNewThread(team1,team2,reqr,sub):	
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
-		t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
+		gotinfo = false
+		while not gotinfo
+			try:
+				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
+				gotinfo = true
+			except requests.exceptions.Timeout:
+				print getTimestamp() + "goal.com access timeout for " + t1 + " vs " + t2
 		
 		botstat,statmsg = getBotStatus()
 		# don't make a post if there's some fatal error
@@ -867,79 +873,85 @@ def checkAndCreate():
 						msg.reply("Deleted " + name)
 				
 def getExtraInfo(matchID):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	#req = urllib2.Request(lineAddress, headers=hdr)
-	#lineWebsite = urllib2.urlopen(req)
-	#line_html_enc = lineWebsite.read()
-	#line_html = line_html_enc.decode("utf8")
-	lineWebsite = requests.get(lineAddress)
-	line_html = lineWebsite.text
-	info = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
-	return info
+	try:
+		lineAddress = "http://www.goal.com/en-us/match/" + matchID
+		#req = urllib2.Request(lineAddress, headers=hdr)
+		#lineWebsite = urllib2.urlopen(req)
+		#line_html_enc = lineWebsite.read()
+		#line_html = line_html_enc.decode("utf8")
+		lineWebsite = requests.get(lineAddress, timeout=15)
+		line_html = lineWebsite.text
+		info = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
+		return info
+	except requests.exceptions.Timeout:
+		return ''
 				
 # update score, scorers
 def updateScore(matchID, t1, t2, sub):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	#req = urllib2.Request(lineAddress, headers=hdr)
-	#lineWebsite = urllib2.urlopen(req)
-	#line_html_enc = lineWebsite.read()
-	#line_html = line_html_enc.decode("utf8")
-	lineWebsite = requests.get(lineAddress)
-	line_html = lineWebsite.text
-	leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
-	rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
-	info = getExtraInfo(matchID)
-	status = getStatus(matchID)
-	goalUpdating = True
-	if status == 'v':
-		status = "0'"
-		goalUpdating = False
-	
-	split1 = line_html.split('<div class="home"') # [0]:nonsense [1]:scorers
-	split2 = split1[1].split('<div class="away"') # [0]:home scorers [1]:away scorers + nonsense
-	split3 = split2[1].split('<div class="module') # [0]:away scorers [1]:nonsense
-	
-	leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
-	rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
-	
-	t1id,t2id = getTeamIDs(matchID)
-	if sub.lower() == 'soccer':
-		t1sprite = ''
-		t2sprite = ''
-		if getSprite(t1id) != '' and getSprite(t2id) != '':
-			t1sprite = getSprite(t1id)
-			t2sprite = getSprite(t2id)
-	
-#		text = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**' + leftScore + '-' + rightScore 
-#		text += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n' 
-		text = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [' + leftScore + '-' + rightScore + '](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
-	else:
-		text = '#**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
-	if not goalUpdating:
-		text += '*goal.com might not be providing match updates for this game.*\n\n'
-	
-	if info != '':
-		text += '***' + info + '***\n\n'
-	
-	left = ''
-	if leftScorers != []:
-		left += "*" + t1 + " scorers: "
-		for scorer in leftScorers:
-			scorer = scorer.replace('&nbsp;',' ')
-			left += scorer + ", "
-		left = left[0:-2] + "*"
+	try:
+		lineAddress = "http://www.goal.com/en-us/match/" + matchID
+		#req = urllib2.Request(lineAddress, headers=hdr)
+		#lineWebsite = urllib2.urlopen(req)
+		#line_html_enc = lineWebsite.read()
+		#line_html = line_html_enc.decode("utf8")
+		lineWebsite = requests.get(lineAddress, timeout=15)
+		line_html = lineWebsite.text
+		leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
+		rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
+		info = getExtraInfo(matchID)
+		status = getStatus(matchID)
+		goalUpdating = True
+		if status == 'v':
+			status = "0'"
+			goalUpdating = False
 		
-	right = ''
-	if rightScorers != []:
-		right += "*" + t2 + " scorers: "
-		for scorer in rightScorers:
-			scorer = scorer.replace('&nbsp;',' ')
-			right += scorer + ", "
-		right = right[0:-2] + "*"
+		split1 = line_html.split('<div class="home"') # [0]:nonsense [1]:scorers
+		split2 = split1[1].split('<div class="away"') # [0]:home scorers [1]:away scorers + nonsense
+		split3 = split2[1].split('<div class="module') # [0]:away scorers [1]:nonsense
 		
-	text += left + '\n\n' + right
+		leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
+		rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
 		
-	return text,left,right
+		t1id,t2id = getTeamIDs(matchID)
+		if sub.lower() == 'soccer':
+			t1sprite = ''
+			t2sprite = ''
+			if getSprite(t1id) != '' and getSprite(t2id) != '':
+				t1sprite = getSprite(t1id)
+				t2sprite = getSprite(t2id)
+		
+	#		text = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**' + leftScore + '-' + rightScore 
+	#		text += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n' 
+			text = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [' + leftScore + '-' + rightScore + '](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
+		else:
+			text = '#**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
+		if not goalUpdating:
+			text += '*goal.com might not be providing match updates for this game.*\n\n'
+		
+		if info != '':
+			text += '***' + info + '***\n\n'
+		
+		left = ''
+		if leftScorers != []:
+			left += "*" + t1 + " scorers: "
+			for scorer in leftScorers:
+				scorer = scorer.replace('&nbsp;',' ')
+				left += scorer + ", "
+			left = left[0:-2] + "*"
+			
+		right = ''
+		if rightScorers != []:
+			right += "*" + t2 + " scorers: "
+			for scorer in rightScorers:
+				scorer = scorer.replace('&nbsp;',' ')
+				right += scorer + ", "
+			right = right[0:-2] + "*"
+			
+		text += left + '\n\n' + right
+			
+		return text,left,right
+	except requests.exceptions.Timeout:
+		return '#**--**\n\n'
 		
 # update all current threads			
 def updateThreads():
