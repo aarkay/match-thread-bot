@@ -609,7 +609,7 @@ def createNewThread(team1,team2,reqr,sub):
 		while not gotinfo:
 			try:
 				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
-				gotinfo = true
+				gotinfo = True
 			except requests.exceptions.Timeout:
 				print getTimestamp() + "goal.com access timeout for " + t1 + " vs " + t2
 		
