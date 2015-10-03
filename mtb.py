@@ -606,7 +606,7 @@ def createNewThread(team1,team2,reqr,sub):
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
 		gotinfo = false
-		while not gotinfo
+		while not gotinfo:
 			try:
 				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
 				gotinfo = true
