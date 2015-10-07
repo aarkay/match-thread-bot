@@ -191,15 +191,15 @@ def getTeamIDs(matchID):
 		
 def getLineUps(matchID):
 	# try to find line-ups (404 if line-ups not on goal.com yet)
-	try:
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
-		#req = urllib2.Request(lineAddress, headers=hdr)
-		#lineWebsite = urllib2.urlopen(req)
-		#line_html_enc = lineWebsite.read()
-		#line_html = line_html_enc.decode("utf8")
-		lineWebsite = requests.get(lineAddress, timeout=15)
-		line_html = lineWebsite.text
-
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
+	#req = urllib2.Request(lineAddress, headers=hdr)
+	#lineWebsite = urllib2.urlopen(req)
+	#line_html_enc = lineWebsite.read()
+	#line_html = line_html_enc.decode("utf8")
+	lineWebsite = requests.get(lineAddress, timeout=15)
+	line_html = lineWebsite.text
+	
+	if lineWebstite.status_code != 404:
 		delim = '<ul class="player-list">'
 		split = line_html.split(delim) # [0]:nonsense [1]:t1 XI [2]:t2 XI [3]:t1 subs [4]:t2 subs + managers
 
@@ -221,8 +221,8 @@ def getLineUps(matchID):
 		if team2Sub == []:
 			team2Sub = ["TBA"]
 		return team1Start,team1Sub,team2Start,team2Sub
-		
-	except requests.exceptions.RequestException:
+	
+	else:
 		team1Start = ["TBA"]
 		team1Sub = ["TBA"]
 		team2Start = ["TBA"]
@@ -236,7 +236,6 @@ def getStatus(matchID):
 		#req = urllib2.Request(lineAddress, headers=hdr)
 		#lineWebsite = urllib2.urlopen(req)
 		#line_html = lineWebsite.read()
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
