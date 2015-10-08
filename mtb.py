@@ -199,7 +199,7 @@ def getLineUps(matchID):
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	
-	if lineWebstite.status_code != 404:
+	if lineWebsite.status_code != 404:
 		delim = '<ul class="player-list">'
 		split = line_html.split(delim) # [0]:nonsense [1]:t1 XI [2]:t2 XI [3]:t1 subs [4]:t2 subs + managers
 
