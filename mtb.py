@@ -199,7 +199,7 @@ def getLineUps(matchID):
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	
-	if lineWebsite.status_code != 404:
+	if lineWebsite.status_code == 200:
 		delim = '<ul class="player-list">'
 		split = line_html.split(delim) # [0]:nonsense [1]:t1 XI [2]:t2 XI [3]:t1 subs [4]:t2 subs + managers
 
@@ -231,16 +231,17 @@ def getLineUps(matchID):
 
 # get current match time/status
 def getStatus(matchID):
-	try:
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID
-		#req = urllib2.Request(lineAddress, headers=hdr)
-		#lineWebsite = urllib2.urlopen(req)
-		#line_html = lineWebsite.read()
-		lineWebsite = requests.get(lineAddress, timeout=15)
-		line_html = lineWebsite.text
+
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID
+	#req = urllib2.Request(lineAddress, headers=hdr)
+	#lineWebsite = urllib2.urlopen(req)
+	#line_html = lineWebsite.read()
+	lineWebsite = requests.get(lineAddress, timeout=15)
+	line_html = lineWebsite.text
+	if lineWebsite.status_code == 200:
 		status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
 		return status			
-	except requests.exceptions.RequestException:
+	else:
 		return ''
 	
 # get venue, ref, lineups, etc from goal.com	
@@ -329,15 +330,14 @@ def findScoreSide(time,left,right):
 
 def grabEvents(matchID,left,right,sub):
 	markup = loadMarkup(sub)
-	try:
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
-		#req = urllib2.Request(lineAddress, headers=hdr)
-		#lineWebsite = urllib2.urlopen(req)
-		#line_html_enc = lineWebsite.read()
-		#line_html = line_html_enc.decode("utf8")
-		lineWebsite = requests.get(lineAddress, timeout=15)
-		line_html = lineWebsite.text
-		
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
+	#req = urllib2.Request(lineAddress, headers=hdr)
+	#lineWebsite = urllib2.urlopen(req)
+	#line_html_enc = lineWebsite.read()
+	#line_html = line_html_enc.decode("utf8")
+	lineWebsite = requests.get(lineAddress, timeout=15)
+	line_html = lineWebsite.text
+	if lineWebsite.status_code == 200:
 		body = ""
 		split = line_html.split('<ul class="commentaries') # [0]:nonsense [1]:events
 		events = split[1].split('<li data-event-type="')
@@ -395,7 +395,7 @@ def grabEvents(matchID,left,right,sub):
 					info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 				body += info + '\n\n'
 		return body
-	except requests.exceptions.RequestException:
+	else:
 		return ""
 	
 def findWiziwigID(team1,team2):
