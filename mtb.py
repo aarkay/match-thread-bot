@@ -126,6 +126,7 @@ def getRelatedSubreddits():
 	subs.append(u'mlslounge')
 	subs.append(u'wycombewanderersfc')
 	subs.append(u'halamadrid')
+	subs.append(u'bih')
 	subs = [x.lower() for x in subs]
 	return subs
 	
