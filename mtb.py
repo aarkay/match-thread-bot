@@ -748,7 +748,7 @@ def createMatchInfo(team1,team2):
 def deleteThread(id):
 	try:
 		if '//' in id:
-			id = re.findall('comments/(.*?)/',id)
+			id = re.findall('comments/(.*?)/',id)[0]
 		thread = r.get_submission(submission_id = id)
 		for data in activeThreads:
 			matchID,team1,team2,thread_id,reqr,sub = data
