@@ -1,4 +1,4 @@
-import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys,json
+import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys,json,unicodedata
 from collections import Counter
 from time import sleep
 
@@ -101,7 +101,7 @@ def readData():
 	f.close()
 	
 def resetAll():
-	removeList = activeThreads
+	removeList = list(activeThreads)
 	for data in removeList:
 		activeThreads.remove(data)
 		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), data[1], data[2], data[5])
@@ -136,6 +136,10 @@ def getBotStatus():
 	msg = re.findall('\| \*(.*?)\*',thread.selftext)
 	return status[0],msg[0]
 	
+def remove_accents(input_str):
+    nfkd_form = unicodedata.normalize('NFKD', input_str)
+    return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+	
 def findGoalSite(team1, team2):
 	# search for each word in each team name in goal.com's fixture list, return most frequent result
 	try:
@@ -143,18 +147,16 @@ def findGoalSite(team1, team2):
 		t2 = team2.split()
 		linkList = []
 		fixAddress = "http://www.goal.com/en-us/live-scores"
-		#req = urllib2.Request(fixAddress, headers=hdr)
-		#fixWebsite = urllib2.urlopen(req)
-		#fix_html = fixWebsite.read()
 		fixWebsite = requests.get(fixAddress, timeout=15)
 		fix_html = fixWebsite.text
 		links = re.findall('/en-us/match/(.*?)"', fix_html)
 		for link in links:
+			link_coded = urllib2.unquote(link.encode('utf-8')).decode('utf-8')
 			for word in t1:
-				if link.find(word.lower()) != -1:
+				if remove_accents(link_coded).find(remove_accents(word.lower())) != -1:
 					linkList.append(link)
 			for word in t2:
-				if link.find(word.lower()) != -1:
+				if remove_accents(link_coded).find(remove_accents(word.lower())) != -1:
 					linkList.append(link)		
 		counts = Counter(linkList)
 		if counts.most_common(1) != []:
@@ -168,11 +170,7 @@ def findGoalSite(team1, team2):
 		
 def getTeamIDs(matchID):
 	try:
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID
-		#req = urllib2.Request(lineAddress, headers=hdr)
-		#lineWebsite = urllib2.urlopen(req)
-		#line_html_enc = lineWebsite.read()
-		#line_html = line_html_enc.decode("utf8")	
+		lineAddress = "http://www.goal.com/en-us/match/" + matchID	
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		
@@ -193,10 +191,6 @@ def getTeamIDs(matchID):
 def getLineUps(matchID):
 	# try to find line-ups (404 if line-ups not on goal.com yet)
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
-	#req = urllib2.Request(lineAddress, headers=hdr)
-	#lineWebsite = urllib2.urlopen(req)
-	#line_html_enc = lineWebsite.read()
-	#line_html = line_html_enc.decode("utf8")
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	
@@ -234,9 +228,6 @@ def getLineUps(matchID):
 def getStatus(matchID):
 
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	#req = urllib2.Request(lineAddress, headers=hdr)
-	#lineWebsite = urllib2.urlopen(req)
-	#line_html = lineWebsite.read()
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	if lineWebsite.status_code == 200:
@@ -249,10 +240,6 @@ def getStatus(matchID):
 def getGDCinfo(matchID):
 	
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID
-		#req = urllib2.Request(lineAddress, headers=hdr)
-		#lineWebsite = urllib2.urlopen(req)
-		#line_html_enc = lineWebsite.read()
-		#line_html = line_html_enc.decode("utf8")
 		lineWebsite = requests.get(lineAddress)
 		line_html = lineWebsite.text
 
@@ -335,10 +322,6 @@ def findScoreSide(time,left,right):
 def grabEvents(matchID,left,right,sub):
 	markup = loadMarkup(sub)
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
-	#req = urllib2.Request(lineAddress, headers=hdr)
-	#lineWebsite = urllib2.urlopen(req)
-	#line_html_enc = lineWebsite.read()
-	#line_html = line_html_enc.decode("utf8")
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	if lineWebsite.status_code == 200:
@@ -695,8 +678,6 @@ def createNewThread(team1,team2,reqr,sub):
 			if getSprite(t1id) != '' and getSprite(t2id) != '':
 				t1sprite = getSprite(t1id)
 				t2sprite = getSprite(t2id)
-#			body = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**vs' 
-#			body += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n--------\n\n'
 			body = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [vs](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
@@ -833,7 +814,7 @@ def checkAndCreate():
 				if threadStatus == 1: # not found
 					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 				if threadStatus == 2: # before kickoff
-					msg.reply("Please wait until kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how. You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
+					msg.reply("Please wait until kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how. \n\nYou could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
 				if threadStatus == 3: # after kickoff - probably found the wrong match
 					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 				if threadStatus == 4: # thread already exists
@@ -882,10 +863,6 @@ def checkAndCreate():
 def getExtraInfo(matchID):
 	try:
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID
-		#req = urllib2.Request(lineAddress, headers=hdr)
-		#lineWebsite = urllib2.urlopen(req)
-		#line_html_enc = lineWebsite.read()
-		#line_html = line_html_enc.decode("utf8")
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		info = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
@@ -897,10 +874,6 @@ def getExtraInfo(matchID):
 def updateScore(matchID, t1, t2, sub):
 	try:
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID
-		#req = urllib2.Request(lineAddress, headers=hdr)
-		#lineWebsite = urllib2.urlopen(req)
-		#line_html_enc = lineWebsite.read()
-		#line_html = line_html_enc.decode("utf8")
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
@@ -926,9 +899,7 @@ def updateScore(matchID, t1, t2, sub):
 			if getSprite(t1id) != '' and getSprite(t2id) != '':
 				t1sprite = getSprite(t1id)
 				t2sprite = getSprite(t2id)
-		
-	#		text = '##**' + status + ':** ' + t1sprite + ' [**' + t1 + '**](#bar-13-white)[**' + leftScore + '-' + rightScore 
-	#		text += '**](#bar-3-grey)[**' + t2 + '**](#bar-13-white) ' + t2sprite + '\n\n' 
+
 			text = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [' + leftScore + '-' + rightScore + '](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 		else:
 			text = '#**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
