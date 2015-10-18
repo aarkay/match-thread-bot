@@ -240,7 +240,7 @@ def getStatus(matchID):
 def getGDCinfo(matchID):
 	
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID
-		lineWebsite = requests.get(lineAddress)
+		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 
 		# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
