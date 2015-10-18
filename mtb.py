@@ -165,6 +165,7 @@ def findGoalSite(team1, team2):
 		else:
 			return 'no match'
 	except requests.exceptions.Timeout:
+		print getTimestamp() + "goal.com access timeout"
 		return 'no match'
 
 		
@@ -186,6 +187,7 @@ def getTeamIDs(matchID):
 			t2id = ''
 		return t1id,t2id
 	except requests.exceptions.Timeout:
+		print getTimestamp() + "goal.com access timeout"
 		return '','' 
 		
 def getLineUps(matchID):
@@ -512,7 +514,9 @@ def findStreamSportsID(team1,team2):
 	fixAddress = "http://www.streamsports.me/football/"
 	#req = urllib2.Request(fixAddress, headers=hdr)
 	try:
-		fixWebsite = requests.get(fixAddress)
+		s = requests.Session()
+		s.headers = hdr
+		fixWebsite = s.get(fixAddress, timeout=30)
 	except requests.exceptions.RequestException, e:
 		logger.error("Couldn't access StreamSports streams for %s vs %s", team1,team2)
 		return 'no match'
