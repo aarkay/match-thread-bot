@@ -267,9 +267,12 @@ def getGDCinfo(matchID):
 			team2fix = team2fix[0:-1]	
 		
 		status = getStatus(matchID)
-		ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
+		#ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
+		ko_day = re.findall('<li itemprop="startDate">.*? (.*?),', line_html, re.DOTALL)[0]
+		ko_time = re.findall('<li itemprop="startDate">.*?<li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
 		
-		venue = re.findall('<div class="match-header .*?</li>.*?</li>.*? (.*?)</li>', line_html, re.DOTALL)
+		#venue = re.findall('<div class="match-header .*?</li>.*?</li>.*? (.*?)</li>', line_html, re.DOTALL)
+		venue = re.findall('<li itemprop="startDate">.*?<li>.*?<li>.*? (.*?)</li>', line_html, re.DOTALL)
 		if venue != []:
 			venue = venue[0]
 		else:
@@ -289,7 +292,7 @@ def getGDCinfo(matchID):
 			
 		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 			
-		return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko,status,comp)
+		return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko_day,ko_time,status,comp)
 		
 	
 def getSprite(teamID):
@@ -608,7 +611,7 @@ def createNewThread(team1,team2,reqr,sub):
 		gotinfo = False
 		while not gotinfo:
 			try:
-				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
+				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko_day, ko_time, status, comp = getGDCinfo(site)
 				gotinfo = True
 			except requests.exceptions.Timeout:
 				print getTimestamp() + "goal.com access timeout for " + t1 + " vs " + t2
@@ -652,7 +655,11 @@ def createNewThread(team1,team2,reqr,sub):
 			return 3,''
 		
 		# don't create a thread if the match hasn't started yet
-		hour_i, min_i, now = getTimes(ko)
+		hour_i, min_i, now = getTimes(ko_time)
+		if now.day < int(ko_day):
+			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
+			return 2,''
 		if now.hour < hour_i:
 			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
 			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
@@ -724,7 +731,7 @@ def createNewThread(team1,team2,reqr,sub):
 def createMatchInfo(team1,team2):
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
-		t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko, status, comp = getGDCinfo(site)
+		t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko_day, ko_time, status, comp = getGDCinfo(site)
 		
 		markup = loadMarkup('soccer')
 
