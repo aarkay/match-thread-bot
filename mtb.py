@@ -833,7 +833,7 @@ def checkAndCreate():
 				if threadStatus == 1: # not found
 					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 				if threadStatus == 2: # before kickoff
-					msg.reply("Please wait until kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!")
+					msg.reply("Please wait until kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how. You could also check out some match thread creation tools from [/u/afito](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/) or [/u/Mamu7490](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/).*")
 				if threadStatus == 3: # after kickoff - probably found the wrong match
 					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 				if threadStatus == 4: # thread already exists
