@@ -1,5 +1,6 @@
 import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys,json,unicodedata
 from collections import Counter
+from itertools import groupby
 from time import sleep
 
 # TO DO: 
@@ -136,9 +137,32 @@ def getBotStatus():
 	msg = re.findall('\| \*(.*?)\*',thread.selftext)
 	return status[0],msg[0]
 	
+# get current match time/status
+def getStatus(matchID):
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID
+	lineWebsite = requests.get(lineAddress, timeout=15)
+	line_html = lineWebsite.text
+	if lineWebsite.status_code == 200:
+		status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
+		return status			
+	else:
+		return ''
+	
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+	
+def guessRightMatch(possibles):
+	matchOn = []
+	for matchID in possibles:
+		status = getStatus(matchID)
+		matchOn.append(status[0].isdigit())
+	stati_int = [int(elem) for elem in matchOn]
+	if sum(stati_int) == 1:
+		guess = possibles[stati_int.index(1)]
+	else:
+		guess = possibles[0]
+	return guess
 	
 def findGoalSite(team1, team2):
 	# search for each word in each team name in goal.com's fixture list, return most frequent result
@@ -160,8 +184,17 @@ def findGoalSite(team1, team2):
 					linkList.append(link)		
 		counts = Counter(linkList)
 		if counts.most_common(1) != []:
-			mode = counts.most_common(1)[0]
-			return mode[0]
+			freqs = groupby(counts.most_common(), lambda x:x[1])
+			possibles = []
+			for val,ct in freqs.next()[1]:
+				possibles.append(val)
+				if len(possibles) > 1:
+					mode = guessRightMatch(possibles)
+				else:
+					mode = possibles[0]
+			return mode
+#			mode = counts.most_common(1)[0]
+#			return mode[0]
 		else:
 			return 'no match'
 	except requests.exceptions.Timeout:
@@ -225,18 +258,6 @@ def getLineUps(matchID):
 		team2Start = ["TBA"]
 		team2Sub = ["TBA"]
 		return team1Start,team1Sub,team2Start,team2Sub
-
-# get current match time/status
-def getStatus(matchID):
-
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	lineWebsite = requests.get(lineAddress, timeout=15)
-	line_html = lineWebsite.text
-	if lineWebsite.status_code == 200:
-		status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
-		return status			
-	else:
-		return ''
 	
 # get venue, ref, lineups, etc from goal.com	
 def getGDCinfo(matchID):
