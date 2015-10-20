@@ -156,7 +156,10 @@ def guessRightMatch(possibles):
 	matchOn = []
 	for matchID in possibles:
 		status = getStatus(matchID)
-		matchOn.append(status[0].isdigit())
+		if len(status) > 0:
+			matchOn.append(status[0].isdigit())
+		else:
+			matchOn.append(False)
 	stati_int = [int(elem) for elem in matchOn]
 	if sum(stati_int) == 1:
 		guess = possibles[stati_int.index(1)]
