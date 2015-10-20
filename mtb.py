@@ -840,8 +840,8 @@ def checkAndCreate():
 					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 				if threadStatus == 2: # before kickoff
 					msg.reply("Please wait until kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
-				if threadStatus == 3: # after kickoff - probably found the wrong match
-					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
+				if threadStatus == 3: # after full time - probably found the wrong match
+					msg.reply("Sorry, I couldn't find a currently live match with those teams - are you sure the match has started (and hasn't finished)? If you think this is a mistake, it probably means I can't find that match - don't forget, you can [run your own match thread](https://www.reddit.com/r/soccer/wiki/matchthreads)!")
 				if threadStatus == 4: # thread already exists
 					msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
 				if threadStatus == 5: # invalid subreddit
