@@ -572,7 +572,7 @@ def findVideoStreams(team1,team2):
 	print getTimestamp() + "Getting streams for " + team1 + " vs " + team2 + "...",
 	text = "**Got a stream? Post it here!**\n\n"
 
-	streamSportsID = findStreamSportsID(team1,team2)
+	#streamSportsID = findStreamSportsID(team1,team2)
 	firstrowID = findFirstrowID(team1,team2)
 	#liveFootballID = findLiveFootballID(team1,team2)
 	#wiziID = findWiziwigID(team1,team2)
