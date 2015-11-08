@@ -617,7 +617,8 @@ def getTimes(ko):
 def submitThread(sub,title):
 	print getTimestamp() + "Submitting " + title + "...",
 	try:
-		thread = r.submit(sub,title,text='Updates soon')
+		thread = r.submit(sub,title,text='Updates soon',send_replies=False)
+		
 		print "complete."
 		return True,thread
 	except:
@@ -627,6 +628,7 @@ def submitThread(sub,title):
 	
 # create a new thread using provided teams	
 def createNewThread(team1,team2,reqr,sub):	
+	print getTimestamp() + "Creating thread for " + team1 + " vs " + team2 + "..."
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
 		gotinfo = False
@@ -827,7 +829,7 @@ def firstTryTeams(msg):
 
 # check for new mail, create new threads if needed
 def checkAndCreate():
-	print getTimestamp() + "Checking messages...",
+	print getTimestamp() + "Checking messages..."
 	delims = [' x ',' - ',' v ',' vs ']
 	subdel = ' for '
 	for msg in r.get_unread(unset_has_mail=True,update_user=True,limit=None):
@@ -898,7 +900,7 @@ def checkAndCreate():
 						msg.reply("Username not recognised. Only the thread requester and bot admin have access to this feature.")
 					else:
 						msg.reply("Deleted " + name)
-	print "complete."
+	print getTimestamp() + "All messages checked."
 				
 def getExtraInfo(matchID):
 	try:
