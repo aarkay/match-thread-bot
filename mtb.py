@@ -826,7 +826,8 @@ def firstTryTeams(msg):
 
 # check for new mail, create new threads if needed
 def checkAndCreate():
-	print getTimestamp() + "Checking messages..."
+	if len(activeThreads) > 0:		
+		print getTimestamp() + "Checking messages..."
 	delims = [' x ',' - ',' v ',' vs ']
 	subdel = ' for '
 	for msg in r.get_unread(unset_has_mail=True,update_user=True,limit=None):
@@ -897,7 +898,8 @@ def checkAndCreate():
 						msg.reply("Username not recognised. Only the thread requester and bot admin have access to this feature.")
 					else:
 						msg.reply("Deleted " + name)
-	print getTimestamp() + "All messages checked."
+	if len(activeThreads) > 0:						
+		print getTimestamp() + "All messages checked."
 				
 def getExtraInfo(matchID):
 	try:
