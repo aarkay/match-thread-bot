@@ -169,7 +169,7 @@ def guessRightMatch(possibles):
 	
 def findGoalSite(team1, team2):
 	# search for each word in each team name in goal.com's fixture list, return most frequent result
-	print getTimestamp() + "Finding goal.com site for " + team1 + " vs " + team2 + "..."
+	print getTimestamp() + "Finding goal.com site for " + team1 + " vs " + team2 + "...",
 	try:
 		t1 = team1.split()
 		t2 = team2.split()
@@ -196,12 +196,12 @@ def findGoalSite(team1, team2):
 					mode = guessRightMatch(possibles)
 				else:
 					mode = possibles[0]
-			print getTimestamp() + "goal.com site for " + team1 + " vs " + team2 + " accessed"
+			print "complete."
 			return mode
 #			mode = counts.most_common(1)[0]
 #			return mode[0]
 		else:
-			print getTimestamp() + "goal.com site for " + team1 + " vs " + team2 + " accessed"
+			print "complete."
 			return 'no match'
 	except requests.exceptions.Timeout:
 		print "goal.com access timeout"
@@ -226,7 +226,6 @@ def getTeamIDs(matchID):
 			t2id = ''
 		return t1id,t2id
 	except requests.exceptions.Timeout:
-		print getTimestamp() + "goal.com access timeout"
 		return '','' 
 		
 def getLineUps(matchID):
@@ -307,7 +306,7 @@ def getGDCinfo(matchID):
 		comp = ''
 		
 	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
-	print getTimestamp() + "goal.com info from " + lineAddress + " found"
+	print "complete."
 	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko_day,ko_time,status,comp)
 		
 	
@@ -411,10 +410,10 @@ def grabEvents(matchID,left,right,sub):
 					info += markup[subst] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
 					info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 				body += info + '\n\n'
-		print getTimestamp() + "Events from " + lineAddress + " grabbed"
+		print "complete."
 		return body
 	else:
-		print getTimestamp() + "Could not access " + lineAddress
+		print "failed."
 		return ""
 	
 def findWiziwigID(team1,team2):
@@ -595,7 +594,7 @@ def findVideoStreams(team1,team2):
 	text += "Check out /r/soccerstreams for more.\n\n^_____________________________________________________________________\n\n"
 	text += "[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 	
-	print getTimestamp() + "Streams for " + team1 + " vs " + team2 + " found"
+	print "complete."
 	return text
 
 def getTimes(ko):
@@ -618,7 +617,6 @@ def submitThread(sub,title):
 	print getTimestamp() + "Submitting " + title + "...",
 	try:
 		thread = r.submit(sub,title,text='Updates soon',send_replies=False)
-		
 		print "complete."
 		return True,thread
 	except:
@@ -628,7 +626,6 @@ def submitThread(sub,title):
 	
 # create a new thread using provided teams	
 def createNewThread(team1,team2,reqr,sub):	
-	print getTimestamp() + "Creating thread for " + team1 + " vs " + team2 + "..."
 	site = findGoalSite(team1,team2)
 	if site != 'no match':
 		gotinfo = False
