@@ -267,7 +267,7 @@ def getLineUps(matchID):
 # get venue, ref, lineups, etc from goal.com	
 def getGDCinfo(matchID):
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	print getTimestamp() + "Finding goal.com info from " + lineAddress + "..."
+	print getTimestamp() + "Finding goal.com info from " + lineAddress + "...",
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 
@@ -350,7 +350,7 @@ def findScoreSide(time,left,right):
 def grabEvents(matchID,left,right,sub):
 	markup = loadMarkup(sub)
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
-	print getTimestamp() + "Grabbing events from " + lineAddress + "..."
+	print getTimestamp() + "Grabbing events from " + lineAddress + "...",
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	if lineWebsite.status_code == 200:
@@ -569,7 +569,7 @@ def findStreamSportsID(team1,team2):
 		return 'no match'
 	
 def findVideoStreams(team1,team2):
-	print getTimestamp() + "Getting streams for " + team1 + " vs " + team2 + "..."
+	print getTimestamp() + "Getting streams for " + team1 + " vs " + team2 + "...",
 	text = "**Got a stream? Post it here!**\n\n"
 
 	streamSportsID = findStreamSportsID(team1,team2)
