@@ -169,6 +169,7 @@ def guessRightMatch(possibles):
 	
 def findGoalSite(team1, team2):
 	# search for each word in each team name in goal.com's fixture list, return most frequent result
+	print getTimestamp() + "Finding goal.com site for " + team1 + " vs " + team2 + "..."
 	try:
 		t1 = team1.split()
 		t2 = team2.split()
@@ -195,13 +196,15 @@ def findGoalSite(team1, team2):
 					mode = guessRightMatch(possibles)
 				else:
 					mode = possibles[0]
+			print getTimestamp() + "goal.com site for " + team1 + " vs " + team2 + " accessed"
 			return mode
 #			mode = counts.most_common(1)[0]
 #			return mode[0]
 		else:
+			print getTimestamp() + "goal.com site for " + team1 + " vs " + team2 + " accessed"
 			return 'no match'
 	except requests.exceptions.Timeout:
-		print getTimestamp() + "goal.com access timeout"
+		print "goal.com access timeout"
 		return 'no match'
 
 		
@@ -264,50 +267,48 @@ def getLineUps(matchID):
 	
 # get venue, ref, lineups, etc from goal.com	
 def getGDCinfo(matchID):
-	
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID
-		print getTimestamp() + "Reading from " + lineAddress + "..."
-		lineWebsite = requests.get(lineAddress, timeout=15)
-		print getTimestamp() + "Read complete"
-		line_html = lineWebsite.text
+	lineAddress = "http://www.goal.com/en-us/match/" + matchID
+	print getTimestamp() + "Finding goal.com info from " + lineAddress + "..."
+	lineWebsite = requests.get(lineAddress, timeout=15)
+	line_html = lineWebsite.text
 
-		# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
-		team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
-		team2fix = re.findall('<div class="away" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
-		t1id,t2id = getTeamIDs(matchID)
+	# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
+	team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
+	team2fix = re.findall('<div class="away" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
+	t1id,t2id = getTeamIDs(matchID)
+	
+	if team1fix[-1]==' ':
+		team1fix = team1fix[0:-1]
+	if team2fix[-1]==' ':
+		team2fix = team2fix[0:-1]	
+	
+	status = getStatus(matchID)
+	#ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
+	ko_day = re.findall('<li itemprop="startDate">.*? (.*?),', line_html, re.DOTALL)[0]
+	ko_time = re.findall('<li itemprop="startDate">.*?<li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
+	
+	#venue = re.findall('<div class="match-header .*?</li>.*?</li>.*? (.*?)</li>', line_html, re.DOTALL)
+	venue = re.findall('<li itemprop="startDate">.*?<li>.*?<li>.*? (.*?)</li>', line_html, re.DOTALL)
+	if venue != []:
+		venue = venue[0]
+	else:
+		venue = '?'
 		
-		if team1fix[-1]==' ':
-			team1fix = team1fix[0:-1]
-		if team2fix[-1]==' ':
-			team2fix = team2fix[0:-1]	
+	ref = re.findall('Referee: (.*?)</li>', line_html, re.DOTALL)
+	if ref != []:
+		ref = ref[0]	
+	else:
+		ref = '?'
 		
-		status = getStatus(matchID)
-		#ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
-		ko_day = re.findall('<li itemprop="startDate">.*? (.*?),', line_html, re.DOTALL)[0]
-		ko_time = re.findall('<li itemprop="startDate">.*?<li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
+	comp = re.findall('<h3 itemprop="superEvent">(.*?)<', line_html, re.DOTALL)
+	if comp != []:
+		comp = comp[0]
+	else:
+		comp = ''
 		
-		#venue = re.findall('<div class="match-header .*?</li>.*?</li>.*? (.*?)</li>', line_html, re.DOTALL)
-		venue = re.findall('<li itemprop="startDate">.*?<li>.*?<li>.*? (.*?)</li>', line_html, re.DOTALL)
-		if venue != []:
-			venue = venue[0]
-		else:
-			venue = '?'
-			
-		ref = re.findall('Referee: (.*?)</li>', line_html, re.DOTALL)
-		if ref != []:
-			ref = ref[0]	
-		else:
-			ref = '?'
-			
-		comp = re.findall('<h3 itemprop="superEvent">(.*?)<', line_html, re.DOTALL)
-		if comp != []:
-			comp = comp[0]
-		else:
-			comp = ''
-			
-		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
-			
-		return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko_day,ko_time,status,comp)
+	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
+	print getTimestamp() + "goal.com info from " + lineAddress + " found"
+	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko_day,ko_time,status,comp)
 		
 	
 def getSprite(teamID):
@@ -350,6 +351,7 @@ def findScoreSide(time,left,right):
 def grabEvents(matchID,left,right,sub):
 	markup = loadMarkup(sub)
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
+	print getTimestamp() + "Grabbing events from " + lineAddress + "..."
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	if lineWebsite.status_code == 200:
@@ -409,8 +411,10 @@ def grabEvents(matchID,left,right,sub):
 					info += markup[subst] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
 					info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 				body += info + '\n\n'
+		print getTimestamp() + "Events from " + lineAddress + " grabbed"
 		return body
 	else:
+		print getTimestamp() + "Could not access " + lineAddress
 		return ""
 	
 def findWiziwigID(team1,team2):
@@ -566,6 +570,7 @@ def findStreamSportsID(team1,team2):
 		return 'no match'
 	
 def findVideoStreams(team1,team2):
+	print getTimestamp() + "Getting streams for " + team1 + " vs " + team2 + "..."
 	text = "**Got a stream? Post it here!**\n\n"
 
 	streamSportsID = findStreamSportsID(team1,team2)
@@ -590,6 +595,7 @@ def findVideoStreams(team1,team2):
 	text += "Check out /r/soccerstreams for more.\n\n^_____________________________________________________________________\n\n"
 	text += "[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 	
+	print getTimestamp() + "Streams for " + team1 + " vs " + team2 + " found"
 	return text
 
 def getTimes(ko):
@@ -609,11 +615,13 @@ def getTimes(ko):
 	
 # attempt submission to subreddit
 def submitThread(sub,title):
+	print getTimestamp() + "Submitting " + title + "...",
 	try:
 		thread = r.submit(sub,title,text='Updates soon')
+		print "complete."
 		return True,thread
 	except:
-		print getTimestamp() + "Submission error for '" + title + "' in /r/" + sub
+		print "failed."
 		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 	
@@ -819,6 +827,7 @@ def firstTryTeams(msg):
 
 # check for new mail, create new threads if needed
 def checkAndCreate():
+	print getTimestamp() + "Checking messages...",
 	delims = [' x ',' - ',' v ',' vs ']
 	subdel = ' for '
 	for msg in r.get_unread(unset_has_mail=True,update_user=True,limit=None):
@@ -889,6 +898,7 @@ def checkAndCreate():
 						msg.reply("Username not recognised. Only the thread requester and bot admin have access to this feature.")
 					else:
 						msg.reply("Deleted " + name)
+	print "complete."
 				
 def getExtraInfo(matchID):
 	try:
