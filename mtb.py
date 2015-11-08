@@ -266,7 +266,9 @@ def getLineUps(matchID):
 def getGDCinfo(matchID):
 	
 		lineAddress = "http://www.goal.com/en-us/match/" + matchID
+		print getTimestamp() + "Reading from " + lineAddress + "..."
 		lineWebsite = requests.get(lineAddress, timeout=15)
+		print getTimestamp() + "Read complete"
 		line_html = lineWebsite.text
 
 		# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
@@ -625,7 +627,7 @@ def createNewThread(team1,team2,reqr,sub):
 				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko_day, ko_time, status, comp = getGDCinfo(site)
 				gotinfo = True
 			except requests.exceptions.Timeout:
-				print getTimestamp() + "goal.com access timeout for " + t1 + " vs " + t2
+				print getTimestamp() + "goal.com access timeout for " + team1 + " vs " + team2
 		
 		botstat,statmsg = getBotStatus()
 		# don't make a post if there's some fatal error
