@@ -350,7 +350,7 @@ def findScoreSide(time,left,right):
 def grabEvents(matchID,left,right,sub):
 	markup = loadMarkup(sub)
 	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
-	print getTimestamp() + "Grabbing events from " + lineAddress + "...",
+#	print getTimestamp() + "Grabbing events from " + lineAddress + "...",
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	if lineWebsite.status_code == 200:
@@ -410,10 +410,10 @@ def grabEvents(matchID,left,right,sub):
 					info += markup[subst] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
 					info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 				body += info + '\n\n'
-		print "complete."
+#		print "complete."
 		return body
 	else:
-		print "failed."
+#		print "failed."
 		return ""
 	
 def findWiziwigID(team1,team2):
