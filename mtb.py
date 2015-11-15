@@ -698,6 +698,13 @@ def createNewThread(team1,team2,reqr,sub):
 		# if subreddit was invalid, notify
 		if result == False:
 			return 5,''
+		
+		data = site, t1, t2, id, reqr, sub
+		activeThreads.append(data)
+		saveData()
+		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
+		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
+		
 		vidlink = thread.add_comment(vidcomment)
 		
 		short = thread.short_link
@@ -732,13 +739,8 @@ def createNewThread(team1,team2,reqr,sub):
 			body += '*' + statmsg + '*\n\n'
 		
 		thread.edit(body)
-		sleep(10)
-		data = site, t1, t2, id, reqr, sub
-		activeThreads.append(data)
-		saveData()
-		
-		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
-		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
+		sleep(5)
+
 		return 0,id
 	else:
 		print getTimestamp() + "Could not find match info for " + team1 + " vs " + team2
