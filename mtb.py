@@ -699,6 +699,10 @@ def createNewThread(team1,team2,reqr,sub):
 		if result == False:
 			return 5,''
 		
+		short = thread.short_link
+		id = short[15:].encode("utf8")
+		redditstream = 'http://www.reddit-stream.com/comments/' + id 
+		
 		data = site, t1, t2, id, reqr, sub
 		activeThreads.append(data)
 		saveData()
@@ -706,10 +710,6 @@ def createNewThread(team1,team2,reqr,sub):
 		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
 		
 		vidlink = thread.add_comment(vidcomment)
-		
-		short = thread.short_link
-		id = short[15:].encode("utf8")
-		redditstream = 'http://www.reddit-stream.com/comments/' + id 
 		
 		if status == 'v':
 			status = "0'"
