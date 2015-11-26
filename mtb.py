@@ -948,7 +948,7 @@ def updateScore(matchID, t1, t2, sub):
 		else:
 			text = '#**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 		if not goalUpdating:
-			text += '*goal.com might not be providing match updates for this game.*\n\n'
+			text += '*If the match has started, goal.com might not be providing updates for this game.*\n\n'
 		
 		if info != '':
 			text += '***' + info + '***\n\n'
