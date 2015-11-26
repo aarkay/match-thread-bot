@@ -674,18 +674,19 @@ def createNewThread(team1,team2,reqr,sub):
 			logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
 			return 3,''
 		
-		# don't create a thread if the match hasn't started yet
+		# don't create a thread more than 5 minutes before kickoff
 		hour_i, min_i, now = getTimes(ko_time)
-		if now.day < int(ko_day):
-			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+		now_f = now + datetime.timedelta(minutes = 5)
+		if now_f.day < int(ko_day):
+			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
 			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
-		if now.hour < hour_i:
-			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+		if now_f.hour < hour_i:
+			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
 			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
-		if (now.hour == hour_i) and (now.minute < min_i):
-			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match yet to start"
+		if (now_f.hour == hour_i) and (now_f.minute < min_i):
+			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
 			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
 			return 2,''
 		
@@ -855,7 +856,7 @@ def checkAndCreate():
 				if threadStatus == 1: # not found
 					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
 				if threadStatus == 2: # before kickoff
-					msg.reply("Please wait until kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
+					msg.reply("Please wait until at least 5 minutes to kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
 				if threadStatus == 3: # after full time - probably found the wrong match
 					msg.reply("Sorry, I couldn't find a currently live match with those teams - are you sure the match has started (and hasn't finished)? If you think this is a mistake, it probably means I can't find that match.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
 				if threadStatus == 4: # thread already exists
