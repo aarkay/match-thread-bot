@@ -679,15 +679,15 @@ def createNewThread(team1,team2,reqr,sub):
 		now_f = now + datetime.timedelta(minutes = 5)
 		if now_f.day < int(ko_day):
 			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
+			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
 			return 2,''
 		if now_f.hour < hour_i:
 			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
+			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
 			return 2,''
 		if (now_f.hour == hour_i) and (now_f.minute < min_i):
 			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-			logger.info("Denied %s vs %s request - match yet to start", t1, t2)
+			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
 			return 2,''
 		
 		vidcomment = findVideoStreams(team1,team2)
