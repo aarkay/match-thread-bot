@@ -616,7 +616,7 @@ def getTimes(ko):
 def submitThread(sub,title):
 	print getTimestamp() + "Submitting " + title + "...",
 	try:
-		thread = r.submit(sub,title,text='Updates soon',send_replies=False)
+		thread = r.submit(sub,title,text='**Venue:**\n\n**LINE-UPS**',send_replies=False)
 		print "complete."
 		return True,thread
 	except:
@@ -1069,6 +1069,8 @@ while running:
 		OAuth_login()
 	except AssertionError:
 		print getTimestamp() + "Assertion error, refreshing login"
+		r.clear_authentication()
+		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
 		OAuth_login()
 	except praw.errors.APIException:
 		print getTimestamp() + "API error, check log file"
