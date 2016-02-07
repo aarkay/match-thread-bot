@@ -690,7 +690,7 @@ def createNewThread(team1,team2,reqr,sub):
 			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
 			return 2,''
 		
-		vidcomment = findVideoStreams(team1,team2)
+		#vidcomment = findVideoStreams(team1,team2)
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
 		if sub.lower() == 'soccer' and comp != '':
 			title = title + ' [' + comp + ']'
@@ -710,7 +710,7 @@ def createNewThread(team1,team2,reqr,sub):
 		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
 		
-		vidlink = thread.add_comment(vidcomment)
+		#vidlink = thread.add_comment(vidcomment)
 		
 		if status == 'v':
 			status = "0'"
@@ -728,11 +728,12 @@ def createNewThread(team1,team2,reqr,sub):
 		else:
 			body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
-		body += markup[strms] + ' **STREAMS**\n\n'
-		body += '[Video streams](' + vidlink.permalink + ')\n\n'
+		body += '/r/soccerstreams\n\n'
 		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
 		body += markup[lines] + ' ' 
 		body = writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub)
+		
+		#[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 		
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
 		
@@ -758,9 +759,6 @@ def createMatchInfo(team1,team2):
 
 		body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
 		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
-		body += markup[strms] + ' **STREAMS**\n\n'
-		body += '[Video streams](LINK-TO-STREAMS-HERE)\n\n'
-		body += '[Reddit comments stream](LINK-TO-REDDIT-STREAM-HERE)\n\n---------\n\n'
 		body += markup[lines] + ' ' 
 		body = writeLineUps('soccer',body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub)
 		
@@ -878,7 +876,7 @@ def checkAndCreate():
 					teams = attempt
 			threadStatus,text = createMatchInfo(teams[0],teams[1])
 			if threadStatus == 0: # successfully found info
-				msg.reply("Below is the information for the match you've requested. There are gaps left for you to add in a link to a comment containing stream links and a link to the reddit-stream for the thread; if you don't want to include these, be sure to remove those lines.\n\nIf you're using [RES](http://redditenhancementsuite.com/), you can use the 'source' button below this message to copy/paste the exact formatting code. If you aren't, you'll have to add the formatting yourself.\n\n----------\n\n" + text)
+				msg.reply("Below is the information for the match you've requested.\n\nIf you're using [RES](http://redditenhancementsuite.com/), you can use the 'source' button below this message to copy/paste the exact formatting code. If you aren't, you'll have to add the formatting yourself.\n\n----------\n\n" + text)
 			if threadStatus == 1: # not found
 				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 		
