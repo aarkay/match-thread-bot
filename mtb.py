@@ -309,16 +309,27 @@ def getGDCinfo(matchID):
 	print "complete."
 	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko_day,ko_time,status,comp)
 		
-	
 def getSprite(teamID):
-	try:
-		j = r.request_json("https://www.reddit.com/r/soccerbot/wiki/matchthreadder1.json")
-		lookups = json.loads(j.content_md)
-		spritecode = lookups[teamID].split('-')
-		return '[](#sprite' + spritecode[0] + '-p' + spritecode[1] + ')'
-		#return '[](#' + lookups[teamID] + ')'
-	except:
-		return ''
+	page = 'matchthreadder1'
+	end = False
+	while not end:
+		try:
+			link = "https://www.reddit.com/r/soccerbot/wiki/%s.json" % page
+			j = r.request_json(link)
+			lookups = json.loads(j.content_md)
+			spritecode = lookups[teamID].split('-')
+			return '[](#sprite' + spritecode[0] + '-p' + spritecode[1] + ')'
+			end = True
+			#return '[](#' + lookups[teamID] + ')'
+		except KeyError:
+			link = "https://www.reddit.com/r/soccerbot/wiki/%s.json" % page
+			k = r.request_json(link)
+			lookups = json.loads(k.content_md)
+			if lookups['next'] == None:
+				end = True
+			else:
+				page = lookups['next']
+	return ''
 	
 def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub):
 	t1sprite = ''
