@@ -312,7 +312,7 @@ def getGDCinfo(matchID):
 	
 def getSprite(teamID):
 	try:
-		j = r.request_json("https://www.reddit.com/r/soccerbot/wiki/matchthreadder.json")
+		j = r.request_json("https://www.reddit.com/r/soccerbot/wiki/matchthreadder1.json")
 		lookups = json.loads(j.content_md)
 		spritecode = lookups[teamID].split('-')
 		return '[](#sprite' + spritecode[0] + '-p' + spritecode[1] + ')'
@@ -414,7 +414,8 @@ def grabEvents(matchID,left,right,sub):
 						info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 					body += info + '\n\n'
 	#		print "complete."
-			return body
+			return bodyjimbrady
+			
 		else:
 	#		print "failed."
 			return ""
