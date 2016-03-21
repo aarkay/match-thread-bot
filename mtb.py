@@ -319,7 +319,6 @@ def getSprite(teamID):
 			lookups = json.loads(j.content_md)
 			spritecode = lookups[teamID].split('-')
 			return '[](#sprite' + spritecode[0] + '-p' + spritecode[1] + ')'
-			end = True
 			#return '[](#' + lookups[teamID] + ')'
 		except KeyError:
 			link = "https://www.reddit.com/r/soccerbot/wiki/%s.json" % page
@@ -425,7 +424,7 @@ def grabEvents(matchID,left,right,sub):
 						info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 					body += info + '\n\n'
 	#		print "complete."
-			return bodyjimbrady
+			return body
 			
 		else:
 	#		print "failed."
