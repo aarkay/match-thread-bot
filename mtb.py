@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys,json,unicodedata
 from collections import Counter
 from itertools import groupby
