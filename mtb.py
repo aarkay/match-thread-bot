@@ -490,6 +490,8 @@ def grabEvents(matchID,left,right,sub):
 	#		print "failed."
 			return ""
 	except:
+		print "edit failed"
+		logger.exception('[EDIT ERROR:]')
 		return ""
 	
 def findWiziwigID(team1,team2):
