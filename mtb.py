@@ -468,8 +468,8 @@ def grabEvents(matchID,left,right,sub):
 					if tag.lower() == 'red-card':
 						event = u'红牌'.encode('utf-8') + ' ' + event[8:]
 						info += markup[red] + ' ' + event
-					if tag.lower() == '第二张':
-						event = u'目标'.encode('utf-8') + ' ' + event[10:]
+					if tag.lower() == 'yellow-red':
+						event = u'第二张'.encode('utf-8') + ' ' + event[10:]
 						info += markup[syel] + ' ' + event
 					if tag.lower() == 'substitution':
 						info += markup[subst] + u' 代换: '.encode('utf-8') + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
