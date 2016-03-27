@@ -443,13 +443,13 @@ def grabEvents(matchID,left,right,sub):
 						event = event[:-1]
 					if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
 						if tag.lower() == 'goal':
-							event = u'\u76ee\u6807'.encode('utf-8') + ' ' + event[4:]
+							event = u'目标'.encode('utf-8') + ' ' + event[4:]
 							info += markup[goal] + ' **' + event + '**'
 						elif tag.lower() == 'penalty-goal':
-							event = u'\u70b9\u7403'.encode('utf-8') + ' ' + event[12:]
+							event = u'点球'.encode('utf-8') + ' ' + event[12:]
 							info += markup[pgoal] + ' **' + event + '**'
 						else:
-							event = u'\u81ea\u5df1\u7684\u76ee\u6807'.encode('utf-8') + ' ' + event[8:]
+							event = u'自己的目标'.encode('utf-8') + ' ' + event[8:]
 							info += markup[ogoal] + ' **' + event + '**'
 						if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 							L += 1
@@ -460,19 +460,19 @@ def grabEvents(matchID,left,right,sub):
 						if updatescores:
 							info += ' **' + str(L) + '-' + str(R) + '**'
 					if tag.lower() == 'missed-penalty':
-						event = u'\u5c04\u5931\u70b9\u7403'.encode('utf-8') + ' ' + event[14:]
+						event = u'射失点球'.encode('utf-8') + ' ' + event[14:]
 						info += markup[mpen] + ' **' + event + '**'
 					if tag.lower() == 'yellow-card':
-						event = u'\u9ec4\u724c'.encode('utf-8') + ' ' + event[11:]
+						event = u'黄牌'.encode('utf-8') + ' ' + event[11:]
 						info += markup[yel] + ' ' + event
 					if tag.lower() == 'red-card':
-						event = u'\u7ea2\u724c'.encode('utf-8') + ' ' + event[8:]
+						event = u'红牌'.encode('utf-8') + ' ' + event[8:]
 						info += markup[red] + ' ' + event
 					if tag.lower() == 'yellow-red':
-						event = u'\u7b2c\u4e8c\u5f20'.encode('utf-8') + ' ' + event[10:]
+						event = u'第二张'.encode('utf-8') + ' ' + event[10:]
 						info += markup[syel] + ' ' + event
 					if tag.lower() == 'substitution':
-						info += markup[subst] + u' \u4ee3\u6362: '.encode('utf-8') + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
+						info += markup[subst] + u' 代换: '.encode('utf-8') + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
 						info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 					body += info + '\n\n'
 					
