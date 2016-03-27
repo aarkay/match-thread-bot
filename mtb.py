@@ -384,54 +384,6 @@ def grabEvents(matchID,left,right,sub):
 			# goal.com's full commentary tagged as "action" - ignore these
 			# will only report goals (+ penalties, own goals), yellows, reds, subs - not sure what else goal.com reports
 			supportedEvents = ['goal','penalty-goal','own-goal','missed-penalty','yellow-card','red-card','yellow-red','substitution']
-			# for text in events:
-				# tag = re.findall('(.*?)"',text,re.DOTALL)[0]
-				# if tag.lower() in supportedEvents:
-					# time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
-					# time = time.strip()
-					# info = "**" + time + "** "
-					# event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
-					# if event[-1] == ' ':
-						# event = event[:-1]
-					# if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
-						# if tag.lower() == 'goal':
-							# event = event[:4] + ' ' + event[4:]
-							# info += markup[goal] + ' **' + event + '**'
-						# elif tag.lower() == 'penalty-goal':
-							# event = event[:12] + ' ' + event[12:]
-							# info += markup[pgoal] + ' **' + event + '**'
-						# else:
-							# event = event[:8] + ' ' + event[8:]
-							# info += markup[ogoal] + ' **' + event + '**'
-						# if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
-							# L += 1
-						# elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
-							# R += 1
-						# else:
-							# updatescores = False
-						# if updatescores:
-							# info += ' **' + str(L) + '-' + str(R) + '**'
-					# if tag.lower() == 'missed-penalty':
-						# event = event[:14] + ' ' + event[14:]
-						# info += markup[mpen] + ' **' + event + '**'
-					# if tag.lower() == 'yellow-card':
-						# event = event[:11] + ' ' + event[11:]
-						# info += markup[yel] + ' ' + event
-					# if tag.lower() == 'red-card':
-						# event = event[:8] + ' ' + event[8:]
-						# info += markup[red] + ' ' + event
-					# if tag.lower() == 'yellow-red':
-						# event = event[:10] + ' ' + event[10:]
-						# info += markup[syel] + ' ' + event
-					# if tag.lower() == 'substitution':
-						# info += markup[subst] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
-						# info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
-					# body += info + '\n\n'
-					
-					
-					
-					
-	####### APRIL FOOLS VERSION #######
 			for text in events:
 				tag = re.findall('(.*?)"',text,re.DOTALL)[0]
 				if tag.lower() in supportedEvents:
@@ -443,13 +395,13 @@ def grabEvents(matchID,left,right,sub):
 						event = event[:-1]
 					if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
 						if tag.lower() == 'goal':
-							event = u'目标'.encode('utf-8') + ' ' + event[4:]
+							event = event[:4] + ' ' + event[4:]
 							info += markup[goal] + ' **' + event + '**'
 						elif tag.lower() == 'penalty-goal':
-							event = u'点球'.encode('utf-8') + ' ' + event[12:]
+							event = event[:12] + ' ' + event[12:]
 							info += markup[pgoal] + ' **' + event + '**'
 						else:
-							event = u'自己的目标'.encode('utf-8') + ' ' + event[8:]
+							event = event[:8] + ' ' + event[8:]
 							info += markup[ogoal] + ' **' + event + '**'
 						if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
 							L += 1
@@ -460,21 +412,69 @@ def grabEvents(matchID,left,right,sub):
 						if updatescores:
 							info += ' **' + str(L) + '-' + str(R) + '**'
 					if tag.lower() == 'missed-penalty':
-						event = u'射失点球'.encode('utf-8') + ' ' + event[14:]
+						event = event[:14] + ' ' + event[14:]
 						info += markup[mpen] + ' **' + event + '**'
 					if tag.lower() == 'yellow-card':
-						event = u'黄牌'.encode('utf-8') + ' ' + event[11:]
+						event = event[:11] + ' ' + event[11:]
 						info += markup[yel] + ' ' + event
 					if tag.lower() == 'red-card':
-						event = u'红牌'.encode('utf-8') + ' ' + event[8:]
+						event = event[:8] + ' ' + event[8:]
 						info += markup[red] + ' ' + event
 					if tag.lower() == 'yellow-red':
-						event = u'第二张'.encode('utf-8') + ' ' + event[10:]
+						event = event[:10] + ' ' + event[10:]
 						info += markup[syel] + ' ' + event
 					if tag.lower() == 'substitution':
-						info += markup[subst] + u' 代换: '.encode('utf-8') + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
+						info += markup[subst] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
 						info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
 					body += info + '\n\n'
+					
+					
+					
+					
+	####### APRIL FOOLS VERSION #######
+			# for text in events:
+				# tag = re.findall('(.*?)"',text,re.DOTALL)[0]
+				# if tag.lower() in supportedEvents:
+					# time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
+					# time = time.strip()
+					# info = "**" + time + "** "
+					# event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
+					# if event[-1] == ' ':
+						# event = event[:-1]
+					# if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
+						# if tag.lower() == 'goal':
+							# event = u'目标'.encode('utf-8') + ' ' + event[4:]
+							# info += markup[goal] + ' **' + event + '**'
+						# elif tag.lower() == 'penalty-goal':
+							# event = u'点球'.encode('utf-8') + ' ' + event[12:]
+							# info += markup[pgoal] + ' **' + event + '**'
+						# else:
+							# event = u'自己的目标'.encode('utf-8') + ' ' + event[8:]
+							# info += markup[ogoal] + ' **' + event + '**'
+						# if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
+							# L += 1
+						# elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
+							# R += 1
+						# else:
+							# updatescores = False
+						# if updatescores:
+							# info += ' **' + str(L) + '-' + str(R) + '**'
+					# if tag.lower() == 'missed-penalty':
+						# event = u'射失点球'.encode('utf-8') + ' ' + event[14:]
+						# info += markup[mpen] + ' **' + event + '**'
+					# if tag.lower() == 'yellow-card':
+						# event = u'黄牌'.encode('utf-8') + ' ' + event[11:]
+						# info += markup[yel] + ' ' + event
+					# if tag.lower() == 'red-card':
+						# event = u'红牌'.encode('utf-8') + ' ' + event[8:]
+						# info += markup[red] + ' ' + event
+					# if tag.lower() == 'yellow-red':
+						# event = u'第二张'.encode('utf-8') + ' ' + event[10:]
+						# info += markup[syel] + ' ' + event
+					# if tag.lower() == 'substitution':
+						# info += markup[subst] + u' 代换: '.encode('utf-8') + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
+						# info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
+					# body += info + '\n\n'
 					
 					
 					
