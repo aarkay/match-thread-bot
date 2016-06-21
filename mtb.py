@@ -872,6 +872,7 @@ def checkAndCreate():
 			euroteams = ['italy','republic of ireland','ireland','sweden','belgium','iceland','austria','hungary','portugal','switzerland','poland','croatia','wales','germany','spain','france','england']
 			if teams[0].lower() in euroteams or teams[1].lower() in euroteams:
 				msg.reply("Sorry, this bot can't be used for Euro 2016 matches. [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to you make your own match thread!\n\n--------------\n\n[^Why ^doesn't ^the ^bot ^work ^for ^Euro ^2016?](https://www.reddit.com/r/soccer/comments/4oun18/match_thread_switzerland_vs_france_euro_2016/d4fn9n8)")
+				print getTimestamp() + "Denied a Euro 2016 thread: " + msg.body
 			else:
 				threadStatus,thread_id = createNewThread(teams[0],teams[1],msg.author.name,sub)
 				if messaging:
