@@ -1,0 +1,13 @@
+[](/goal)
+[](/penalty-made)
+[](/own-goal)
+[](/penalty-missed)
+[](/yellow)
+[](/second-yellow)
+[](/red)
+[](/sub)
+[](/sub-off)
+[](/sub-on)
+ 
+ 
+ 
