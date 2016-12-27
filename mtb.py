@@ -50,7 +50,6 @@ def setup():
         try:
                 f = open('login.txt')
                 line = f.readline()
-                print("read: " + line)
                 admin,username,password,subreddit,user_agent,id,secret,redirect = line.split('||',8)
                 f.close()
                 r = praw.Reddit(client_id=id, client_secret=secret, username=username, password=password, user_agent=user_agent)
@@ -59,7 +58,8 @@ def setup():
                 print(getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)\n")
                 logger.exception("[SETUP ERROR:]")
                 sleep(10)
-                
+
+# deprecated                
 def OAuth_login():
         try:
                 client_auth = requests.auth.HTTPBasicAuth( id, secret )
@@ -720,7 +720,7 @@ def createNewThread(team1,team2,reqr,sub):
                 
                 short = thread.shortlink
                 print('shortlink: ' + short)
-                id = short[15:]#.encode("utf8")
+                id = short[15:]
                 redditstream = 'http://www.reddit-stream.com/comments/' + id 
                 
                 data = site, t1, t2, id, reqr, sub
@@ -850,11 +850,8 @@ def checkAndCreate():
                 print( getTimestamp() + "Checking messages...")
         delims = [' x ',' - ',' v ',' vs ']
         subdel = ' for '
-        #inbox = 
         for msg in r.inbox.unread(mark_read=False):
                 sub = subreddit
-                print("Have a message")
-                print(msg.body)
                 msg.mark_read()
                 if msg.subject.lower() == 'match thread':
                         subreq = msg.body.split(subdel,2)
@@ -1072,8 +1069,6 @@ logger.info("[STARTUP]")
 print( getTimestamp() + "[STARTUP]")
 
 r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
-print( "Username/subreddit:", username, subreddit)
-
 readData()
 
 if len(sys.argv) > 1:
