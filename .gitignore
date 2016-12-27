@@ -1,3 +1,6 @@
 login.txt
 active_threads.txt
 log.log
+venv
+*~
+

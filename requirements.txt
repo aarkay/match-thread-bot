@@ -1,0 +1,7 @@
+decorator==4.0.10
+praw==4.1.0
+prawcore==0.5.0
+requests==2.12.4
+six==1.10.0
+update-checker==0.15
+urllib3==1.19.1

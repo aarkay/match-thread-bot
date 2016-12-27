@@ -24,3 +24,17 @@ In this file is the code used to run MatchThreadder - as long as you change the 
 If/when the bot runs into any HTTP errors (reddit is down, can't access goal.com, etc) it will sleep for 2 minutes and try again.
 
 If a message is titled 'Match Thread', the bot will attempt to find info about the match and then post a match thread to the specified subreddit. If a message is titled 'Match Info', the bot will attempt to find info about the match and then reply to the user with a template for the match thread so the user can post and update the thread themselves.
+
+#Usage/Setup
+----
+
+Match Thread Bot uses virtualenv - if you don't have it installed, run 
+`pip install virtualenv`. Then to set up the virtualenv for this project, run: 
+```
+virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+If you install further requirements with pip, make sure you run 
+`pip freeze > requirements.txt` to keep everything up to date.
+And run `deactivate` when you're done with virtualenv.
