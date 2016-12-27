@@ -7,7 +7,11 @@ from itertools import groupby
 from time import sleep
 
 # TO DO: 
+# python 3
+#  print(" ")
+#  urllib2 to urllib
 #  cookielib to http.cookiejar
+#  s = f.read().decode('utf8') line not needed? python 3 decodes automatically
 # use goal.com to bypass thread request
 # switch from urllib2 to requests maybe
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
@@ -54,6 +58,7 @@ def setup():
                 admin,username,password,subreddit,user_agent,id,secret,redirect = line.split('||',8)
                 f.close()
                 r = praw.Reddit(client_id=id, client_secret=secret, username=username, password=password, user_agent=user_agent)
+                #r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
                 return r,admin,username,password,subreddit,user_agent,id,secret,redirect
         except:
                 print(getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)\n")
@@ -83,17 +88,18 @@ def saveData():
                 matchID,t1,t2,thread_id,reqr,sub = data
                 s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + reqr + '####' + sub + '&&&&'
         s = s[0:-4] # take off last &&&&
-        f.write(s)
+        f.write(s)#.encode('utf8'))
         f.close()
 
 # read saved activeThreads data        
 def readData():
         f = open('active_threads.txt', 'a+')
-        s = f.read()
+        s = f.read()#.decode('utf8')
         info = s.split('&&&&')
         if info[0] != '':
                 for d in info:
                         [matchID,t1,t2,thread_id,reqr,sub] = d.split('####')
+                        matchID = matchID#.encode('utf8') # get rid of weird character at start - got to be a better way to do this...
                         data = matchID, t1, t2, thread_id, reqr, sub
                         activeThreads.append(data)
                         logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
@@ -116,6 +122,7 @@ def loadMarkup(subreddit):
         return markup
         
 def getRelatedSubreddits():
+        #print("getting related subs")
         page = r.subreddit('soccer').wiki['relatedsubreddits'].content_md
         subs = re.findall('/r/(.*?) ',page,re.DOTALL)
         subs = [s.replace('\r','') for s in subs]
@@ -129,6 +136,7 @@ def getRelatedSubreddits():
         subs.append(u'bih')
         subs.append(u'soccerdev')
         subs = [x.lower() for x in subs]
+        #print("related subs: " + str(subs))
         return subs
         
 def getBotStatus():
@@ -179,7 +187,7 @@ def findGoalSite(team1, team2):
                 fix_html = fixWebsite.text
                 links = re.findall('/en-us/match/(.*?)"', fix_html)
                 for link in links:
-                        link_coded = urllib.parse.unquote(link)
+                        link_coded = urllib.parse.unquote(link)#.decode('utf-8')
                         for word in t1:
                                 if remove_accents(link_coded).find(remove_accents(word.lower())) != -1:
                                         linkList.append(link)
@@ -187,9 +195,11 @@ def findGoalSite(team1, team2):
                                 if remove_accents(link_coded).find(remove_accents(word.lower())) != -1:
                                         linkList.append(link)                
                 counts = Counter(linkList)
+                print("\ncounts: " + str(counts))
                 if counts.most_common(1) != []:
                         possibles = []
                         for val,grp in groupby(counts.most_common(), lambda x:x[0]):
+                                print("val: " + str(val))
                                 possibles.append(val)
                                 if len(possibles) > 1:
                                         mode = guessRightMatch(possibles)
@@ -361,6 +371,7 @@ def findScoreSide(time,left,right):
 def grabEvents(matchID,left,right,sub):
         markup = loadMarkup(sub)
         lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
+#        print getTimestamp() + "Grabbing events from " + lineAddress + "...",
         lineWebsite = requests.get(lineAddress, timeout=15)
         line_html = lineWebsite.text
         try:
@@ -663,7 +674,7 @@ def createNewThread(team1,team2,reqr,sub):
                 
                 # only post to related subreddits
                 relatedsubs = getRelatedSubreddits()
-                if sub.lower() not in relatedsubs:
+                if sub.lower() not in relatedsubs and False: #TODO remove and False
                         print( getTimestamp() + "Denied post request to /r/" + sub + " - not related")
                         logger.info("Denied post request to %s - not related", sub)
                         return 6,''
@@ -687,7 +698,7 @@ def createNewThread(team1,team2,reqr,sub):
                                 return 7,''
                 
                 # don't create a thread if the match is done (probably found the wrong match)
-                if status == 'FT' or status == 'PEN' or status == 'AET':
+                if False and (status == 'FT' or status == 'PEN' or status == 'AET'): #TODO remove False
                         print( getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished")
                         logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
                         return 3,''
@@ -851,11 +862,11 @@ def checkAndCreate():
         delims = [' x ',' - ',' v ',' vs ']
         subdel = ' for '
         #inbox = 
-        for msg in r.inbox.unread(mark_read=False):
+        for msg in r.inbox.unread(mark_read=False):#get_unread(unset_has_mail=True,update_user=True,limit=None):
                 sub = subreddit
                 print("Have a message")
                 print(msg.body)
-                msg.mark_read()
+                #msg.mark_read() TODO: uncomment soon (commented for debugging)
                 if msg.subject.lower() == 'match thread':
                         subreq = msg.body.split(subdel,2)
                         if subreq[0] != msg.body:
@@ -1070,10 +1081,10 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.info("[STARTUP]")
 print( getTimestamp() + "[STARTUP]")
-
+#import pdb; pdb.set_trace()
 r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
 print( "Username/subreddit:", username, subreddit)
-
+#OAuth_login()
 readData()
 
 if len(sys.argv) > 1:
@@ -1090,26 +1101,20 @@ while running:
                 logger.info("[MANUAL SHUTDOWN]")
                 print( getTimestamp() + "[MANUAL SHUTDOWN]\n")
                 running = False
-        #except praw.exceptions.OAuthException as e:
-        #        logger.exception("[OAuthException:]")
-        #        logger.exception(str(e))
+        #except praw.exceptions.OAuthInvalidToken:
+        #        print( getTimestamp() + "Token expired, refreshing")
+                #OAuth_login()
         except AssertionError:
                 print( getTimestamp() + "Assertion error, refreshing login")
                 r.clear_authentication()
                 r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
                 OAuth_login()
-        except praw.exceptions.APIException as e:
+        except praw.exceptions.APIException:
                 print( getTimestamp() + "API error, check log file")
                 logger.exception("[API ERROR:]")
-                logger.exception(str(e))
                 sleep(60) 
-        except praw.exceptions.ClientException as e:
-                print(getTimestamp() + "Client error, check log file")
-                logger.exception("[CLIENT ERROR:]")
-                logger.exception(str(e))
-                sleep(60)
         except Exception as e:
+                print( e)
                 print( getTimestamp() + "Unknown error, check log file")
                 logger.exception('[UNKNOWN ERROR:]')
-                logger.exception(str(e))
                 sleep(60) 
