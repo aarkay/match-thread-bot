@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys,json,unicodedata
+from praw.models import Message
 from collections import Counter
 from itertools import groupby
 from time import sleep
@@ -55,8 +56,14 @@ def setup():
 		f = open('login.txt')
 		admin,username,password,subreddit,user_agent,id,secret,redirect = f.readline().split('||',8)
 		f.close()
-		r = praw.Reddit(user_agent)
-		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
+		#r = praw.Reddit(user_agent)
+		#r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
+		r = praw.Reddit(client_id=id,
+                     client_secret=secret,
+                     password=password,
+                     user_agent=user_agent,
+                     username=username)
+		print getTimestamp() + "OAuth session opened as /u/" + r.user.me().name
 		return r,admin,username,password,subreddit,user_agent,id,secret,redirect
 	except:
 		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)\n"
@@ -72,7 +79,7 @@ def OAuth_login():
 		token_data = response.json( )
 		all_scope = set(['identity','edit','flair','history','mysubreddits','privatemessages','read','save','submit','vote','wikiread'])
 		r.set_access_credentials( all_scope, token_data[ 'access_token' ])
-		print getTimestamp() + "OAuth session opened as /u/" + r.get_me().name
+		print getTimestamp() + "OAuth session opened as /u/" + r.user.me().name
 	except:
 		print getTimestamp() + "OAuth error, check log file"
 		logger.exception("[OAUTH ERROR:]")
@@ -120,7 +127,7 @@ def loadMarkup(subreddit):
 	return markup
 	
 def getRelatedSubreddits():
-	page = r.get_wiki_page('soccer','relatedsubreddits').content_md
+	page = r.subreddit('soccer').wiki['relatedsubreddits'].content_md
 	subs = re.findall('/r/(.*?) ',page,re.DOTALL)
 	subs = [s.replace('\r','') for s in subs]
 	subs = [s.replace('\n','') for s in subs]
@@ -136,19 +143,22 @@ def getRelatedSubreddits():
 	return subs
 	
 def getBotStatus():
-	thread = r.get_submission(submission_id = '22ah8i')
+	thread = r.submission('22ah8i')
 	status = re.findall('bar-10-(.*?)\)',thread.selftext)
 	msg = re.findall('\| \*(.*?)\*',thread.selftext)
 	return status[0],msg[0]
 	
 # get current match time/status
 def getStatus(matchID):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
+	lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	if lineWebsite.status_code == 200:
-		status = re.findall('<div class="vs">(.*?)<',line_html,re.DOTALL)[0]
-		return status			
+		status = re.findall('<span class="game-time".*?>(.*?)<',line_html,re.DOTALL)
+		if status == []:
+			return 'v'
+		else:
+			return status[0]
 	else:
 		return ''
 	
@@ -171,25 +181,31 @@ def guessRightMatch(possibles):
 		guess = possibles[0]
 	return guess
 	
-def findGoalSite(team1, team2):
-	# search for each word in each team name in goal.com's fixture list, return most frequent result
-	print getTimestamp() + "Finding goal.com site for " + team1 + " vs " + team2 + "...",
+def findMatchSite(team1, team2):
+	# search for each word in each team name in the fixture list, return most frequent result
+	print getTimestamp() + "Finding ESPN site for " + team1 + " vs " + team2 + "...",
 	try:
 		t1 = team1.split()
 		t2 = team2.split()
 		linkList = []
-		fixAddress = "http://www.goal.com/en-us/live-scores"
+		fixAddress = "http://www.espnfc.us/scores"
 		fixWebsite = requests.get(fixAddress, timeout=15)
 		fix_html = fixWebsite.text
-		links = re.findall('/en-us/match/(.*?)"', fix_html)
-		for link in links:
-			link_coded = urllib2.unquote(link.encode('utf-8')).decode('utf-8')
+		matches = fix_html.split('<div id="score-leagues">')[1]
+		names = re.findall('<div class="team-names">(.*?)Game Details', matches, re.DOTALL)
+		for match in names:
+			matchID = re.findall('gameId=(.*?)"', match, re.DOTALL)[0]
+			ESPNteams = re.findall('<div class="team-name">.*?<span>.*?>(.*?)</span>', match, re.DOTALL)
 			for word in t1:
-				if remove_accents(link_coded).find(remove_accents(word.lower())) != -1:
-					linkList.append(link)
+				if remove_accents(ESPNteams[0].lower()).find(remove_accents(word.lower())) != -1:
+					linkList.append(matchID)
+				if remove_accents(ESPNteams[1].lower()).find(remove_accents(word.lower())) != -1:
+					linkList.append(matchID)
 			for word in t2:
-				if remove_accents(link_coded).find(remove_accents(word.lower())) != -1:
-					linkList.append(link)		
+				if remove_accents(ESPNteams[0].lower()).find(remove_accents(word.lower())) != -1:
+					linkList.append(matchID)
+				if remove_accents(ESPNteams[1].lower()).find(remove_accents(word.lower())) != -1:
+					linkList.append(matchID)		
 		counts = Counter(linkList)
 		if counts.most_common(1) != []:
 			freqs = groupby(counts.most_common(), lambda x:x[1])
@@ -202,8 +218,6 @@ def findGoalSite(team1, team2):
 					mode = possibles[0]
 			print "complete."
 			return mode
-#			mode = counts.most_common(1)[0]
-#			return mode[0]
 		else:
 			print "complete."
 			return 'no match'
@@ -211,45 +225,82 @@ def findGoalSite(team1, team2):
 		print "goal.com access timeout"
 		return 'no match'
 
-		
 def getTeamIDs(matchID):
 	try:
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID	
+		lineAddress = "http://www.espnfc.us/match?gameId=" + matchID	
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		
-		t1id = re.findall('<div class="home" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
-		t2id = re.findall('<div class="away" .*?/en-us/teams/.*?/.*?/(.*?)"', line_html, re.DOTALL)
-		if t1id != []:
-			t1id = t1id[0]
+		teamIDs = re.findall('<div class="team-info">(.*?)</div>', line_html, re.DOTALL)
+		if teamIDs != []:
+			t1id = re.findall('/club/.*?/(.*?)/',teamIDs[0],re.DOTALL)
+			t2id = re.findall('/club/.*?/(.*?)/',teamIDs[1],re.DOTALL)
+			if t1id != []:
+				t1id = t1id[0]
+			else:
+				t1id = ''
+			if t2id != []:
+				t2id = t2id[0]
+			else:
+				t2id = ''
+			return t1id,t2id
 		else:
-			t1id = ''
-		if t2id != []:
-			t2id = t2id[0]
-		else:
-			t2id = ''
-		return t1id,t2id
+			return '',''
 	except requests.exceptions.Timeout:
 		return '','' 
 		
 def getLineUps(matchID):
-	# try to find line-ups (404 if line-ups not on goal.com yet)
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/lineups"
+	# try to find line-ups
+	lineAddress = "http://www.espnfc.us/lineups?gameId=" + matchID
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
+	split = line_html.split('<div class="sub-module soccer">') # [0]:nonsense [1]:team1 [2]:team2
 	
-	if lineWebsite.status_code == 200:
-		delim = '<ul class="player-list">'
-		split = line_html.split(delim) # [0]:nonsense [1]:t1 XI [2]:t2 XI [3]:t1 subs [4]:t2 subs + managers
-
-		managerDelim = '<div class="manager"'
-		split[4] = split[4].split(managerDelim)[0] # managers now excluded
+	if len(split) > 1:
+		team1StartBlock = split[1].split('Substitutes')[0]
+		team1SubBlock= split[1].split('Substitutes')[1]
+		team2StartBlock = split[2].split('Substitutes')[0]
+		team2SubBlock = split[2].split('Substitutes')[1]
 		
-		team1Start = re.findall('<span class="name".*?>(.*?)<',split[1],re.DOTALL)
-		team2Start = re.findall('<span class="name".*?>(.*?)<',split[2],re.DOTALL)	
-		team1Sub = re.findall('<span class="name".*?>(.*?)<',split[3],re.DOTALL)
-		team2Sub = re.findall('<span class="name".*?>(.*?)<',split[4],re.DOTALL)
+		team1Start = []
+		team2Start = []	
+		team1Sub = []
+		team2Sub = []
+		
+		t1StartInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team1StartBlock, re.DOTALL)
+		t1SubInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team1SubBlock, re.DOTALL)
+		t2StartInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team2StartBlock, re.DOTALL)
+		t2SubInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team2SubBlock, re.DOTALL)
 
+		for playerInfo in t1StartInfo:
+			playerNum = playerInfo[0:6]
+			if '%' not in playerNum:
+				playertext = ''
+				if 'icon-soccer-substitution-before' in playerInfo:
+					playertext += '!sub '
+				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
+				team1Start.append(playertext)
+		for playerInfo in t1SubInfo:
+			playerNum = playerInfo[0:6]
+			if '%' not in playerNum:
+				playertext = ''
+				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
+				team1Sub.append(playertext)
+		for playerInfo in t2StartInfo:
+			playerNum = playerInfo[0:6]
+			if '%' not in playerNum:
+				playertext = ''
+				if 'icon-soccer-substitution-before' in playerInfo:
+					playertext += '!sub '
+				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
+				team2Start.append(playertext)				
+		for playerInfo in t2SubInfo:
+			playerNum = playerInfo[0:6]
+			if '%' not in playerNum:
+				playertext = ''
+				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
+				team2Sub.append(playertext)
+		
 		# if no players found, ie TBA
 		if team1Start == []:
 			team1Start = ["TBA"]
@@ -268,16 +319,16 @@ def getLineUps(matchID):
 		team2Sub = ["TBA"]
 		return team1Start,team1Sub,team2Start,team2Sub
 	
-# get venue, ref, lineups, etc from goal.com	
-def getGDCinfo(matchID):
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID
-	print getTimestamp() + "Finding goal.com info from " + lineAddress + "...",
+# get venue, ref, lineups, etc from ESPN	
+def getMatchInfo(matchID):
+	lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
+	print getTimestamp() + "Finding ESPNFC info from " + lineAddress + "...",
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 
-	# get "fixed" versions of team names (ie team names from goal.com, not team names from match thread request)
-	team1fix = re.findall('<div class="home" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
-	team2fix = re.findall('<div class="away" .*?<h2>(.*?)<', line_html, re.DOTALL)[0]
+	# get "fixed" versions of team names (ie team names from ESPNFC, not team names from match thread request)
+	team1fix = re.findall('<span class="long-name">(.*?)<', line_html, re.DOTALL)[0]
+	team2fix = re.findall('<span class="long-name">(.*?)<', line_html, re.DOTALL)[1]
 	t1id,t2id = getTeamIDs(matchID)
 	
 	if team1fix[-1]==' ':
@@ -286,36 +337,42 @@ def getGDCinfo(matchID):
 		team2fix = team2fix[0:-1]	
 	
 	status = getStatus(matchID)
-	#ko = re.findall('<div class="match-header .*?</li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
-	ko_day = re.findall('<li itemprop="startDate">.*? (.*?),', line_html, re.DOTALL)[0]
-	ko_time = re.findall('<li itemprop="startDate">.*?<li>.*? (.*?)</li>', line_html, re.DOTALL)[0]
+	ko_date = re.findall('<span data-date="(.*?)T', line_html, re.DOTALL)
+	if ko_date != []:
+		ko_date = ko_date[0]
+		ko_day = ko_date[8:]
+		ko_time = re.findall('<span data-date=".*?T(.*?)Z', line_html, re.DOTALL)[0]
+		# above time is actually 4 hours from now (ESPN time in source code)
+	else:
+		ko_day = ''
+		ko_time = ''
 	
-	#venue = re.findall('<div class="match-header .*?</li>.*?</li>.*? (.*?)</li>', line_html, re.DOTALL)
-	venue = re.findall('<li itemprop="startDate">.*?<li>.*?<li>.*? (.*?)</li>', line_html, re.DOTALL)
+	venue = re.findall('<div>VENUE: (.*?)<', line_html, re.DOTALL)
 	if venue != []:
 		venue = venue[0]
 	else:
 		venue = '?'
 		
-	ref = re.findall('Referee: (.*?)</li>', line_html, re.DOTALL)
-	if ref != []:
-		ref = ref[0]	
-	else:
-		ref = '?'
+	#ref = re.findall('Referee: (.*?)</li>', line_html, re.DOTALL)
+	#if ref != []:
+	#	ref = ref[0]	
+	#else:
+	#	ref = '?'
 		
-	comp = re.findall('<h3 itemprop="superEvent">(.*?)<', line_html, re.DOTALL)
-	if comp != []:
-		comp = comp[0]
+	compfull = re.findall('<div class="game-details header">(.*?)<', line_html, re.DOTALL)
+	if compfull != []:
+		comp = re.sub(', Regular Season','',re.sub('20.*? ','',compfull[0])).strip(' \n\t\r')
 	else:
 		comp = ''
 		
 	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 	print "complete."
-	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ref,ko_day,ko_time,status,comp)
+	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ko_day,ko_time,status,comp)
 		
-def getSprite(teamID):
+def getSprite_old(teamID):
 	page = 'matchthreadder1'
-	end = False
+	#end = False
+	end = True
 	while not end:
 		try:
 			link = "https://www.reddit.com/r/soccerbot/wiki/%s.json" % page
@@ -323,7 +380,6 @@ def getSprite(teamID):
 			lookups = json.loads(j.content_md)
 			spritecode = lookups[teamID].split('-')
 			return '[](#sprite' + spritecode[0] + '-p' + spritecode[1] + ')'
-			#return '[](#' + lookups[teamID] + ')'
 		except KeyError:
 			link = "https://www.reddit.com/r/soccerbot/wiki/%s.json" % page
 			k = r.request_json(link)
@@ -334,100 +390,89 @@ def getSprite(teamID):
 				page = lookups['next']
 	return ''
 	
+def getSprite(teamID):
+	lines = [line.rstrip('\n') for line in open('crests.txt')]
+	for line in lines:
+		if line != '' and not line.startswith('||'):
+			line = line.split('\t')[len(line.split('\t'))-1]
+			split = line.split('::')
+			EID = split[0]
+			sprite = split[1].split('-')
+			if EID == teamID:
+				return '[](#sprite' + sprite[0] + '-p' + sprite[1] + ')'
+	return ''
+	
 def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub):
+	markup = loadMarkup(sub)
 	t1sprite = ''
 	t2sprite = ''
-	if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
-		t1sprite = getSprite(t1id) + ' '
-		t2sprite = getSprite(t2id) + ' '
+	#if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
+	#	t1sprite = getSprite(t1id) + ' '
+	#	t2sprite = getSprite(t2id) + ' '
 	
-	body += '**LINE-UPS**\n\n**' + t1sprite + t1 + '**\n\n'
-	body += ", ".join(x for x in team1Start) + ".\n\n"
-	body += '**Subs:** '
+	body += '**LINE-UPS**\n\n**' + t1 + '**\n\n'
+	linestring = ''
+	for name in team1Start:
+		if '!sub' in name:
+			linestring += ' (' + markup[subst] + name[5:] + ')'
+		else:
+			linestring += ', ' + name
+	linestring = linestring[2:] + '.\n\n'
+	body += linestring + '**Subs:** '
 	body += ", ".join(x for x in team1Sub) + ".\n\n^____________________________\n\n"
 	
-	body += '**' + t2sprite + t2 + '**\n\n'
-	body += ", ".join(x for x in team2Start) + ".\n\n"
-	body += '**Subs:** '
+	body += '**' + t2 + '**\n\n'
+	linestring = ''
+	for name in team2Start:
+		if '!sub' in name:
+			linestring += ' (' + markup[subst] + name[5:] + ')'
+		else:
+			linestring += ', ' + name
+	linestring = linestring[2:] + '.\n\n'
+	body += linestring + '**Subs:** '
 	body += ", ".join(x for x in team2Sub) + "."
-	return body
 	
-def findScoreSide(time,left,right):
-	leftTimes = [int(x) for x in re.findall(r'\b\d+\b', left)]
-	rightTimes = [int(x) for x in re.findall(r'\b\d+\b', right)]
-	if time in leftTimes and time in rightTimes:
-		return 'none'
-	if time in leftTimes:
-		return 'left'
-	if time in rightTimes:
-		return 'right'
-	return 'none'
+	return body
 
-def grabEvents(matchID,left,right,sub):
+def grabEvents(matchID,sub):
 	markup = loadMarkup(sub)
-	lineAddress = "http://www.goal.com/en-us/match/" + matchID + "/live-commentary"
+	lineAddress = "http://www.espnfc.us/commentary?gameId=" + matchID
 #	print getTimestamp() + "Grabbing events from " + lineAddress + "...",
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	try:
 		if lineWebsite.status_code == 200:
 			body = ""
-			split = line_html.split('<ul class="commentaries') # [0]:nonsense [1]:events
-			events = split[1].split('<li data-event-type="')
-			events = events[1:]
+			split = line_html.split('<h1>Key Events</h1>') # [0]:stuff [1]:key events
+			
+			events = re.findall('<tr data-id=(.*?)</tr>',split[1],re.DOTALL)
 			events = events[::-1]
 			
-			L = 0
-			R = 0
-			updatescores = True
-			
-			# goal.com's full commentary tagged as "action" - ignore these
-			# will only report goals (+ penalties, own goals), yellows, reds, subs - not sure what else goal.com reports
-			supportedEvents = ['goal','penalty-goal','own-goal','missed-penalty','yellow-card','red-card','yellow-red','substitution']
+			# will only report goals (+ penalties, own goals), yellows, reds, subs
+			supportedEvents = ['goal','goal---header','goal---free-kick','penalty---scored','own-goal','penalty---missed','yellow-card','red-card','substitution']
 			for text in events:
-				tag = re.findall('(.*?)"',text,re.DOTALL)[0]
+				tag = re.findall('data-type="(.*?)"',text,re.DOTALL)[0]
 				if tag.lower() in supportedEvents:
-					time = re.findall('<div class="time">\n?(.*?)<',text,re.DOTALL)[0]
+					time = re.findall('"time-stamp">(.*?)<',text,re.DOTALL)[0]
 					time = time.strip()
 					info = "**" + time + "** "
-					event = re.findall('<div class="text">\n?(.*?)<',text,re.DOTALL)[0]
-					if event[-1] == ' ':
-						event = event[:-1]
-					if tag.lower() == 'goal' or tag.lower() == 'penalty-goal' or tag.lower() == 'own-goal':
-						if tag.lower() == 'goal':
-							event = event[:4] + ' ' + event[4:]
+					event = re.findall('"game-details">(.*?)<',text,re.DOTALL)[0].strip()
+					if tag.lower().startswith('goal') or tag.lower() == 'penalty---scored' or tag.lower() == 'own-goal':
+						if tag.lower().startswith('goal'):
 							info += markup[goal] + ' **' + event + '**'
-						elif tag.lower() == 'penalty-goal':
-							event = event[:12] + ' ' + event[12:]
+						elif tag.lower() == 'penalty---scored':
 							info += markup[pgoal] + ' **' + event + '**'
 						else:
-							event = event[:8] + ' ' + event[8:]
 							info += markup[ogoal] + ' **' + event + '**'
-						if findScoreSide(int(time.split("'")[0]),left,right) == 'left':
-							L += 1
-						elif findScoreSide(int(time.split("'")[0]),left,right) == 'right':
-							R += 1
-						else:
-							updatescores = False
-						if updatescores:
-							info += ' **' + str(L) + '-' + str(R) + '**'
-					if tag.lower() == 'missed-penalty':
-						event = event[:14] + ' ' + event[14:]
+					if tag.lower() == 'penalty---missed':
 						info += markup[mpen] + ' **' + event + '**'
 					if tag.lower() == 'yellow-card':
-						event = event[:11] + ' ' + event[11:]
 						info += markup[yel] + ' ' + event
 					if tag.lower() == 'red-card':
-						event = event[:8] + ' ' + event[8:]
 						info += markup[red] + ' ' + event
-					if tag.lower() == 'yellow-red':
-						event = event[:10] + ' ' + event[10:]
-						info += markup[syel] + ' ' + event
 					if tag.lower() == 'substitution':
-						info += markup[subst] + ' Substitution: ' + markup[subo] + re.findall('"sub-out">(.*?)<',text,re.DOTALL)[0]
-						info += ' ' + markup[subi] + re.findall('"sub-in">(.*?)<',text,re.DOTALL)[0]
+						info += markup[subst] + ' ' + event
 					body += info + '\n\n'
-					
 		
 	#		print "complete."
 			return body
@@ -439,199 +484,12 @@ def grabEvents(matchID,left,right,sub):
 #		print "edit failed"
 #		logger.exception('[EDIT ERROR:]')
 		return ""
-	
-def findWiziwigID(team1,team2):
-	t1 = team1.split()
-	t2 = team2.split()
-	linkList = []
-	fixAddress = "http://www.wiziwig.sx/competition.php?part=sports&discipline=football"
-	#req = urllib2.Request(fixAddress, headers=hdr)
-	try:
-		fixWebsite = requests.get(fixAddress)
-	except requests.exceptions.RequestException, e:
-		logger.error("Couldn't access wiziwig streams for %s vs %s", team1,team2)
-		return 'no match'
-	fix_html = fixWebsite.text
-	
-	for word in t1:
-		links = re.findall('<td class="home">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
-		for link in links:
-			linkList.append(link)
-	for word in t2:
-		links = re.findall('<td class="away">.*?' + word + '.*?broadcast" href="(.*?)"', fix_html, re.DOTALL)
-		for link in links:
-			linkList.append(link)
-
-	counts = Counter(linkList)
-	if counts.most_common(1) != []:
-		mode = counts.most_common(1)[0]
-		return mode[0]
-	else:
-		logger.info("Couldn't find wiziwig streams for %s vs %s", team1,team2)
-		return 'no match'
-		
-def findFirstrowID(team1,team2):
-	t1 = team1.split()
-	t2 = team2.split()
-	linkList = []
-	fixAddress = "http://ifirstrowus.eu/"
-	#req = urllib2.Request(fixAddress, headers=hdr)
-	try:
-		fixWebsite = requests.get(fixAddress)
-	except requests.exceptions.RequestException, e:
-		logger.error("Couldn't access firstrow streams for %s vs %s", team1,team2)
-		return 'no match'
-	fix_html = fixWebsite.text
-	
-	for word in t1:
-		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
-		for link in links:	
-			linkList.append(link)
-	for word in t2:
-		links = re.findall('<a> <img class="chimg" alt=".*?' + word + ".*?Link 1'href='(.*?)'",fix_html,re.DOTALL)
-		for link in links:
-			linkList.append(link)
-
-	counts = Counter(linkList)
-	if counts.most_common(1) != []:
-		mode = counts.most_common(1)[0]
-		return mode[0]
-	else:
-		logger.info("Couldn't find firstrow streams for %s vs %s", team1,team2)
-		return 'no match'
-		
-def findLiveFootballID(team1,team2):
-	t1 = team1.split()
-	t2 = team2.split()
-	linkList = []
-	fixAddress = "http://livefootballvideo.com/"
-	#req = urllib2.Request(fixAddress, headers=hdr)
-	try:
-		fixWebsite = requests.get(fixAddress)
-	except requests.exceptions.RequestException, e:
-		logger.error("Couldn't access LiveFootballVideo streams for %s vs %s", team1,team2)
-		return 'no match'
-	fix_html = fixWebsite.text
-	
-	for word in t1:
-		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
-		for link in links:	
-			linkList.append(link)
-	for word in t2:
-		links = re.findall('<span>.*?' + word + '.*?href="(.*?)"', fix_html, re.DOTALL)
-		for link in links:
-			linkList.append(link)
-
-	counts = Counter(linkList)
-	if counts.most_common(1) != []:
-		mode = counts.most_common(1)[0]
-		return mode[0]
-	else:
-		logger.info("Couldn't find LiveFootballVideo streams for %s vs %s", team1,team2)
-		return 'no match'
-		
-def findBebaTVID(team1,team2):
-	t1 = team1.split()
-	t2 = team2.split()
-	linkList = []
-	fixAddress = "http://beba.tv/football"
-	#req = urllib2.Request(fixAddress, headers=hdr)
-	try:
-		fixWebsite = requests.get(fixAddress)
-	except requests.exceptions.RequestException, e:
-		logger.error("Couldn't access BebaTV streams for %s vs %s", team1,team2)
-		return 'no match'
-	fix_html = fixWebsite.text
-	
-	for word in t1:
-		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
-		for link in links:	
-			linkList.append(link)
-	for word in t2:
-		links = re.findall('<span class="lshevent">.*?' + word + '.*?href="/football/(.*?)"', fix_html, re.DOTALL)
-		for link in links:
-			linkList.append(link)
-
-	counts = Counter(linkList)
-	if counts.most_common(1) != []:
-		mode = counts.most_common(1)[0]
-		return mode[0]
-	else:
-		logger.info("Couldn't find BebaTV streams for %s vs %s", team1,team2)
-		return 'no match'
-		
-def findStreamSportsID(team1,team2):
-	t1 = team1.split()
-	t2 = team2.split()
-	linkList = []
-	fixAddress = "http://www.streamsports.me/football/"
-	#req = urllib2.Request(fixAddress, headers=hdr)
-	try:
-		s = requests.Session()
-		s.headers = hdr
-		fixWebsite = s.get(fixAddress, timeout=30)
-	except requests.exceptions.RequestException, e:
-		logger.error("Couldn't access StreamSports streams for %s vs %s", team1,team2)
-		return 'no match'
-	fix_html = fixWebsite.text
-	
-	for word in t1:
-		links = re.findall('Open event: <a href="(.*?)" title=".*?' + word + '.*?">', fix_html, re.IGNORECASE)
-		for link in links:	
-			linkList.append(link)
-	for word in t2:
-		links = re.findall('Open event: <a href="(.*?)" title=".*?' + word + '.*?">', fix_html, re.IGNORECASE)
-		for link in links:
-			linkList.append(link)
-
-	counts = Counter(linkList)
-	if counts.most_common(1) != []:
-		mode = counts.most_common(1)[0]
-		return mode[0]
-	else:
-		logger.info("Couldn't find StreamSports streams for %s vs %s", team1,team2)
-		return 'no match'
-	
-def findVideoStreams(team1,team2):
-	print getTimestamp() + "Getting streams for " + team1 + " vs " + team2 + "...",
-	text = "**Got a stream? Post it here!**\n\n"
-
-	#streamSportsID = findStreamSportsID(team1,team2)
-	#firstrowID = findFirstrowID(team1,team2)
-	#liveFootballID = findLiveFootballID(team1,team2)
-	#wiziID = findWiziwigID(team1,team2)
-	#bebaTVID = findBebaTVID(team1,team2)
-
-	
-	#if streamSportsID != 'no match':
-	#	text += '[StreamSports](http://www.streamsports.me/' + streamSportsID + ')\n\n'
-	#if firstrowID != 'no match':
-	#	text += '[FirstRow](http://gofirstrowus.eu' + firstrowID + ')\n\n'
-	#if liveFootballID != 'no match':
-		#text += '[LiveFootballVideo](' + liveFootballID + ')\n\n'
-	#if wiziID != 'no match':
-	#	text += '[wiziwig](http://www.wiziwig.sx/' + wiziID + ')\n\n'
-	#if bebaTVID != 'no match':
-	#	text += '[BebaTV](http://beba.tv/football/' + bebaTVID + ')\n\n'
-
-
-	text += "Check out /r/soccerstreams for more.\n\n^_____________________________________________________________________\n\n"
-	text += "[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
-	
-	print "complete."
-	return text
 
 def getTimes(ko):
 	hour = ko[0:ko.index(':')]
 	minute = ko[ko.index(':')+1:ko.index(':')+3]
-	ampm = ko[ko.index(' ')+1:]
 	hour_i = int(hour)
 	min_i = int(minute)
-	
-	if (ampm == 'PM') and (hour_i != 12):
-		hour_i += 12		
-	if (ampm == 'AM') and (hour_i == 12):
-		hour_i = 0	
 	
 	now = datetime.datetime.now()
 	return (hour_i,min_i,now)
@@ -640,7 +498,7 @@ def getTimes(ko):
 def submitThread(sub,title):
 	print getTimestamp() + "Submitting " + title + "...",
 	try:
-		thread = r.submit(sub,title,text='**Venue:**\n\n**LINE-UPS**',send_replies=False)
+		thread = r.subreddit(sub).submit(title,selftext='**Venue:**\n\n**LINE-UPS**',send_replies=False)
 		print "complete."
 		return True,thread
 	except:
@@ -650,15 +508,15 @@ def submitThread(sub,title):
 	
 # create a new thread using provided teams	
 def createNewThread(team1,team2,reqr,sub):	
-	site = findGoalSite(team1,team2)
-	if site != 'no match':
+	matchID = findMatchSite(team1,team2)
+	if matchID != 'no match':
 		gotinfo = False
 		while not gotinfo:
 			try:
-				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko_day, ko_time, status, comp = getGDCinfo(site)
+				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ko_day, ko_time, status, comp = getMatchInfo(matchID)
 				gotinfo = True
 			except requests.exceptions.Timeout:
-				print getTimestamp() + "goal.com access timeout for " + team1 + " vs " + team2
+				print getTimestamp() + "ESPNFC access timeout for " + team1 + " vs " + team2
 		
 		botstat,statmsg = getBotStatus()
 		# don't make a post if there's some fatal error
@@ -693,14 +551,16 @@ def createNewThread(team1,team2,reqr,sub):
 				return 7,''
 		
 		# don't create a thread if the match is done (probably found the wrong match)
-		if status == 'FT' or status == 'PEN' or status == 'AET':
+		if status.startswith('FT') or status == 'AET':
 			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
 			logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
 			return 3,''
 		
 		# don't create a thread more than 5 minutes before kickoff
 		hour_i, min_i, now = getTimes(ko_time)
-		now_f = now + datetime.timedelta(minutes = 5)
+		now_f = now + datetime.timedelta(hours = 4, minutes = 5)
+		if ko_day == '':
+			return 1,''
 		if now_f.day < int(ko_day):
 			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
 			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
@@ -713,10 +573,9 @@ def createNewThread(team1,team2,reqr,sub):
 			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
 			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
 			return 2,''
-		
-		#vidcomment = findVideoStreams(team1,team2)
+
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
-		if sub.lower() == 'soccer' and comp != '':
+		if (sub.lower() == 'soccer' or sub.lower() == 'soccerdev') and comp != '':
 			title = title + ' [' + comp + ']'
 		result,thread = submitThread(sub,title)
 		
@@ -724,11 +583,11 @@ def createNewThread(team1,team2,reqr,sub):
 		if result == False:
 			return 5,''
 		
-		short = thread.short_link
-		id = short[15:].encode("utf8")
+		short = thread.shortlink
+		id = short[short.index('.it/')+4:].encode("utf8")
 		redditstream = 'http://www.reddit-stream.com/comments/' + id 
 		
-		data = site, t1, t2, id, reqr, sub
+		data = matchID, t1, t2, id, reqr, sub
 		activeThreads.append(data)
 		saveData()
 		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
@@ -751,15 +610,19 @@ def createNewThread(team1,team2,reqr,sub):
 
 		else:
 			body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
-		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
-		body += '/r/soccerstreams\n\n'
-		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
+#		body += '**Venue:** ' + venue + '\n\n--------\n\n'
+#		body += '/r/soccerstreams\n\n'
+#		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
+
+		body += '**Venue:** ' + venue + '\n\n'
+		body += '[Auto-refreshing reddit comments link](' + redditstream + ')\n\n---------\n\n'
+
 		body += markup[lines] + ' ' 
 		body = writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub)
 		
 		#[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 		
-		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + site + ')*\n\n'
+		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espnfc.us/match?gameId=' + matchID + ')*\n\n'
 		
 		if botstat != 'green':
 			body += '*' + statmsg + '*\n\n'
@@ -775,14 +638,14 @@ def createNewThread(team1,team2,reqr,sub):
 
 # if the requester just wants a template		
 def createMatchInfo(team1,team2):
-	site = findGoalSite(team1,team2)
-	if site != 'no match':
-		t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ref, ko_day, ko_time, status, comp = getGDCinfo(site)
+	matchID = findMatchSite(team1,team2)
+	if matchID != 'no match':
+		t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ko_day, ko_time, status, comp = getMatchInfo(matchID)
 		
 		markup = loadMarkup('soccer')
 
 		body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
-		body += '**Venue:** ' + venue + '\n\n' + '**Referee:** ' + ref + '\n\n--------\n\n'
+		body += '**Venue:** ' + venue + '\n\n--------\n\n'
 		body += markup[lines] + ' ' 
 		body = writeLineUps('soccer',body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub)
 		
@@ -799,7 +662,7 @@ def deleteThread(id):
 	try:
 		if '//' in id:
 			id = re.findall('comments/(.*?)/',id)[0]
-		thread = r.get_submission(submission_id = id)
+		thread = r.submission(id)
 		for data in activeThreads:
 			matchID,team1,team2,thread_id,reqr,sub = data
 			if thread_id == id:
@@ -816,7 +679,7 @@ def deleteThread(id):
 # remove incorrectly made thread if requester asks within 5 minutes of creation
 def removeWrongThread(id,req):
 	try:
-		thread = r.get_submission(submission_id = id)
+		thread = r.submission(id)
 		dif = datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(thread.created_utc)
 		for data in activeThreads:
 			matchID,team1,team2,thread_id,reqr,sub = data
@@ -854,10 +717,12 @@ def checkAndCreate():
 	if len(activeThreads) > 0:		
 		print getTimestamp() + "Checking messages..."
 	delims = [' x ',' - ',' v ',' vs ']
+	unread_messages = []
 	subdel = ' for '
-	for msg in r.get_unread(unset_has_mail=True,update_user=True,limit=None):
+	for msg in r.inbox.unread(limit=None):
+		if isinstance(msg, Message):
+			unread_messages.append(msg)
 		sub = subreddit
-		msg.mark_as_read()
 		if msg.subject.lower() == 'match thread':
 			subreq = msg.body.split(subdel,2)
 			if subreq[0] != msg.body:
@@ -881,7 +746,7 @@ def checkAndCreate():
 					if notify:
 						r.send_message(admin,"Match thread request fulfilled","/u/" + msg.author.name + " requested " + teams[0] + " vs " + teams[1] + " in /r/" + sub + ". \n\n[Thread link](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") | [Deletion link](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ")")
 				if threadStatus == 1: # not found
-					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
+					msg.reply("Sorry, I couldn't find info for that match. If the match you requested appears on [this page](http://www.espnfc.us/scores), please let /u/spawnofyanni know about this error.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
 				if threadStatus == 2: # before kickoff
 					msg.reply("Please wait until at least 5 minutes to kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
 				if threadStatus == 3: # after full time - probably found the wrong match
@@ -930,52 +795,63 @@ def checkAndCreate():
 						msg.reply("Deleted " + name)
 	if len(activeThreads) > 0:						
 		print getTimestamp() + "All messages checked."
+	r.inbox.mark_read(unread_messages)
 				
 def getExtraInfo(matchID):
 	try:
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID
+		lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
-		info = re.findall('<div class="away-score">.*?<p>(.*?)<',line_html,re.DOTALL)[0]
-		return info
+		info = re.findall('data-stat="note">(.*?)<',line_html,re.DOTALL)
+		if info == []:
+			return ''
+		else:
+			return info[0]
 	except requests.exceptions.Timeout:
 		return ''
 				
 # update score, scorers
 def updateScore(matchID, t1, t2, sub):
 	try:
-		lineAddress = "http://www.goal.com/en-us/match/" + matchID
+		lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
-		leftScore = re.findall('<div class="home-score">(.*?)<',line_html,re.DOTALL)[0]
-		rightScore = re.findall('<div class="away-score">(.*?)<',line_html,re.DOTALL)[0]
+		leftScore = re.findall('data-stat="score">(.*?)<',line_html,re.DOTALL)[0].strip()
+		rightScore = re.findall('data-stat="score">(.*?)<',line_html,re.DOTALL)[1].strip()
 		info = getExtraInfo(matchID)
 		status = getStatus(matchID)
-		goalUpdating = True
+		ESPNUpdating = True
 		if status == 'v':
 			status = "0'"
-			goalUpdating = False
+			ESPNUpdating = False
 		
-		split1 = line_html.split('<div class="home"') # [0]:nonsense [1]:scorers
-		split2 = split1[1].split('<div class="away"') # [0]:home scorers [1]:away scorers + nonsense
-		split3 = split2[1].split('<div class="module') # [0]:away scorers [1]:nonsense
+		leftInfo = re.findall('<div class="team-info players"(.*?)</div>',line_html,re.DOTALL)[0]
+		rightInfo = re.findall('<div class="team-info players"(.*?)</div>',line_html,re.DOTALL)[1]
 		
-		leftScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split2[0],re.DOTALL)
-		rightScorers = re.findall('<a href="/en-us/people/.*?>(.*?)<',split3[0],re.DOTALL)
+		leftGoals = re.findall('data-event-type="goal"(.*?)</ul>',leftInfo,re.DOTALL)
+		rightGoals = re.findall('data-event-type="goal"(.*?)</ul>',rightInfo,re.DOTALL)
+		
+		if leftGoals != []:
+			leftScorers = re.findall('<li>(.*?)</li',leftGoals[0],re.DOTALL)
+		else:
+			leftScorers = []
+		if rightGoals != []:
+			rightScorers = re.findall('<li>(.*?)</li',rightGoals[0],re.DOTALL)
+		else:
+			rightScorers = []
 		
 		t1id,t2id = getTeamIDs(matchID)
-		if sub.lower() == 'soccer':
+		if sub.lower() == 'soccer' or sub.lower() == 'soccerdev':
 			t1sprite = ''
 			t2sprite = ''
 			if getSprite(t1id) != '' and getSprite(t2id) != '':
 				t1sprite = getSprite(t1id)
 				t2sprite = getSprite(t2id)
-
 			text = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [' + leftScore + '-' + rightScore + '](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 		else:
 			text = '#**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
-		if not goalUpdating:
-			text += '*If the match has started, goal.com might not be providing updates for this game.*\n\n'
+		if not ESPNUpdating:
+			text += '*If the match has started, ESPNFC might not be providing updates for this game.*\n\n'
 		
 		if info != '':
 			text += '***' + info + '***\n\n'
@@ -984,7 +860,8 @@ def updateScore(matchID, t1, t2, sub):
 		if leftScorers != []:
 			left += "*" + t1 + " scorers: "
 			for scorer in leftScorers:
-				scorer = scorer.replace('&nbsp;',' ')
+				
+				scorer = scorer[0:scorer.index('<')].strip(' \t\n\r') + ' ' + scorer[scorer.index('('):scorer.index('/')-1].strip(' \t\n\r')
 				left += scorer + ", "
 			left = left[0:-2] + "*"
 			
@@ -992,13 +869,13 @@ def updateScore(matchID, t1, t2, sub):
 		if rightScorers != []:
 			right += "*" + t2 + " scorers: "
 			for scorer in rightScorers:
-				scorer = scorer.replace('&nbsp;',' ')
+				scorer = scorer[0:scorer.index('<')].strip(' \t\n\r') + ' ' + scorer[scorer.index('('):scorer.index('/')-1].strip(' \t\n\r')
 				right += scorer + ", "
 			right = right[0:-2] + "*"
 			
 		text += left + '\n\n' + right
 			
-		return text,left,right
+		return text
 	except requests.exceptions.Timeout:
 		return '#**--**\n\n'
 		
@@ -1010,7 +887,7 @@ def updateThreads():
 		finished = False				
 		index = activeThreads.index(data)
 		matchID,team1,team2,thread_id,reqr,sub = data
-		thread = r.get_submission(submission_id = thread_id)
+		thread = r.submission(thread_id)
 		body = thread.selftext
 		venueIndex = body.index('**Venue:**')
 
@@ -1019,9 +896,10 @@ def updateThreads():
 		# detect if finished
 		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'AET':
 			finished = True
-		elif getStatus(matchID) == 'PEN':
+		elif getStatus(matchID) == 'FT-Pens':
 			info = getExtraInfo(matchID)
-			if 'won' in info or 'win' in info:
+			if 'wins' in info or 'win' in info:
+				info = info.replace('wins','win')
 				finished = True
 		
 		# update lineups (sometimes goal.com changes/updates them)
@@ -1031,17 +909,17 @@ def updateThreads():
 		
 		t1id,t2id = getTeamIDs(matchID)
 		newbody = writeLineUps(sub,bodyTilThen,team1,t1id,team2,t2id,team1Start,team1Sub,team2Start,team2Sub)
-		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [goal.com](http://www.goal.com/en-us/match/' + matchID + ')*\n\n'
+		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espnfc.us/match?gameId=' + matchID + ')*\n\n'
 		
 		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
 			newbody += '*' + statmsg + '*\n\n'
 			
 		# update scorelines
-		score,left,right = updateScore(matchID,team1,team2,sub)
+		score = updateScore(matchID,team1,team2,sub)
 		newbody = score + '\n\n--------\n\n' + newbody
 		
-		events = grabEvents(matchID,left,right,sub)
+		events = grabEvents(matchID,sub)
 		newbody += '\n\n' + events
 
 		# save data
@@ -1074,7 +952,7 @@ logger.info("[STARTUP]")
 print getTimestamp() + "[STARTUP]"
 
 r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
-OAuth_login()
+#OAuth_login()
 readData()
 
 if len(sys.argv) > 1:
@@ -1091,15 +969,15 @@ while running:
 		logger.info("[MANUAL SHUTDOWN]")
 		print getTimestamp() + "[MANUAL SHUTDOWN]\n"
 		running = False
-	except praw.errors.OAuthInvalidToken:
-		print getTimestamp() + "Token expired, refreshing"
-		OAuth_login()
-	except AssertionError:
-		print getTimestamp() + "Assertion error, refreshing login"
-		r.clear_authentication()
-		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
-		OAuth_login()
-	except praw.errors.APIException:
+#	except praw.errors.OAuthInvalidToken:
+#		print getTimestamp() + "Token expired, refreshing"
+#		OAuth_login()
+#	except AssertionError:
+#		print getTimestamp() + "Assertion error, refreshing login"
+#		r.clear_authentication()
+#		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
+#		OAuth_login()
+	except praw.exceptions.APIException:
 		print getTimestamp() + "API error, check log file"
 		logger.exception("[API ERROR:]")
 		sleep(60) 
