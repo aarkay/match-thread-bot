@@ -20,7 +20,7 @@ from time import sleep
 
 # every minute, check mail, create new threads, update all current threads
 
-# browser header (to avoid 405 error with goal.com, streaming sites)
+# browser header (to avoid 405 error)
 hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
@@ -31,6 +31,7 @@ hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML,
 activeThreads = []
 notify = False
 messaging = True
+spriteSubs = ['soccer','Gunners','fcbayern','soccerdev','mls']
 
 # naughty list				
 usrblacklist = ['dbawbaby',
@@ -56,8 +57,6 @@ def setup():
 		f = open('login.txt')
 		admin,username,password,subreddit,user_agent,id,secret,redirect = f.readline().split('||',8)
 		f.close()
-		#r = praw.Reddit(user_agent)
-		#r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
 		r = praw.Reddit(client_id=id,
                      client_secret=secret,
                      password=password,
@@ -68,21 +67,6 @@ def setup():
 	except:
 		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)\n"
 		logger.exception("[SETUP ERROR:]")
-		sleep(10)
-		
-def OAuth_login():
-	try:
-		client_auth = requests.auth.HTTPBasicAuth( id, secret )
-		headers = { 'user-agent': user_agent }
-		post_data = { "grant_type": "password", "username": username, "password": password }
-		response = requests.post( "https://www.reddit.com/api/v1/access_token",auth = client_auth,data = post_data,headers = headers)
-		token_data = response.json( )
-		all_scope = set(['identity','edit','flair','history','mysubreddits','privatemessages','read','save','submit','vote','wikiread'])
-		r.set_access_credentials( all_scope, token_data[ 'access_token' ])
-		print getTimestamp() + "OAuth session opened as /u/" + r.user.me().name
-	except:
-		print getTimestamp() + "OAuth error, check log file"
-		logger.exception("[OAUTH ERROR:]")
 		sleep(10)
 	
 # save activeThreads
@@ -139,6 +123,7 @@ def getRelatedSubreddits():
 	subs.append(u'halamadrid')
 	subs.append(u'bih')
 	subs.append(u'soccerdev')
+	subs.append(u'whufc')
 	subs = [x.lower() for x in subs]
 	return subs
 	
@@ -353,64 +338,43 @@ def getMatchInfo(matchID):
 	else:
 		venue = '?'
 		
-	#ref = re.findall('Referee: (.*?)</li>', line_html, re.DOTALL)
-	#if ref != []:
-	#	ref = ref[0]	
-	#else:
-	#	ref = '?'
-		
 	compfull = re.findall('<div class="game-details header">(.*?)<', line_html, re.DOTALL)
 	if compfull != []:
-		comp = re.sub(', Regular Season','',re.sub('20.*? ','',compfull[0])).strip(' \n\t\r')
+		comp = re.sub('20.*? ','',compfull[0]).strip(' \n\t\r')
+		if comp.find(',') != -1:
+			comp = comp[0:comp.index(',')]
 	else:
 		comp = ''
 		
 	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 	print "complete."
 	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ko_day,ko_time,status,comp)
-		
-def getSprite_old(teamID):
-	page = 'matchthreadder1'
-	#end = False
-	end = True
-	while not end:
-		try:
-			link = "https://www.reddit.com/r/soccerbot/wiki/%s.json" % page
-			j = r.request_json(link)
-			lookups = json.loads(j.content_md)
-			spritecode = lookups[teamID].split('-')
-			return '[](#sprite' + spritecode[0] + '-p' + spritecode[1] + ')'
-		except KeyError:
-			link = "https://www.reddit.com/r/soccerbot/wiki/%s.json" % page
-			k = r.request_json(link)
-			lookups = json.loads(k.content_md)
-			if lookups['next'] == None:
-				end = True
-			else:
-				page = lookups['next']
-	return ''
 	
-def getSprite(teamID):
-	lines = [line.rstrip('\n') for line in open('crests.txt')]
+def getSprite(teamID,sub):
+	customCrestSubs = ['mls']
+	crestFile = 'crests.txt'
+	if sub in customCrestSubs:
+		crestFile = sub + crestFile
+	lines = [line.rstrip('\n') for line in open(crestFile)]
 	for line in lines:
 		if line != '' and not line.startswith('||'):
 			line = line.split('\t')[len(line.split('\t'))-1]
 			split = line.split('::')
 			EID = split[0]
-			sprite = split[1].split('-')
+			sprite = split[1]
 			if EID == teamID:
-				return '[](#sprite' + sprite[0] + '-p' + sprite[1] + ')'
+				return sprite
 	return ''
 	
 def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub):
 	markup = loadMarkup(sub)
 	t1sprite = ''
 	t2sprite = ''
-	#if sub.lower() == 'soccer' and getSprite(t1id) != '' and getSprite(t2id) != '':
-	#	t1sprite = getSprite(t1id) + ' '
-	#	t2sprite = getSprite(t2id) + ' '
+	if sub.lower() in spriteSubs and getSprite(t1id,sub) != '' and getSprite(t2id,sub) != '':
+		t1sprite = getSprite(t1id,sub) + ' '
+		t2sprite = getSprite(t2id,sub) + ' '
 	
-	body += '**LINE-UPS**\n\n**' + t1 + '**\n\n'
+	body += '**LINE-UPS**\n\n**' + t1sprite + t1 + '**\n\n'
 	linestring = ''
 	for name in team1Start:
 		if '!sub' in name:
@@ -421,7 +385,7 @@ def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Su
 	body += linestring + '**Subs:** '
 	body += ", ".join(x for x in team1Sub) + ".\n\n^____________________________\n\n"
 	
-	body += '**' + t2 + '**\n\n'
+	body += '**' + t2sprite + t2 + '**\n\n'
 	linestring = ''
 	for name in team2Start:
 		if '!sub' in name:
@@ -449,7 +413,7 @@ def grabEvents(matchID,sub):
 			events = events[::-1]
 			
 			# will only report goals (+ penalties, own goals), yellows, reds, subs
-			supportedEvents = ['goal','goal---header','goal---free-kick','penalty---scored','own-goal','penalty---missed','yellow-card','red-card','substitution']
+			supportedEvents = ['goal','goal---header','goal---free-kick','penalty---scored','own-goal','penalty---missed','penalty---saved','yellow-card','red-card','substitution']
 			for text in events:
 				tag = re.findall('data-type="(.*?)"',text,re.DOTALL)[0]
 				if tag.lower() in supportedEvents:
@@ -464,7 +428,7 @@ def grabEvents(matchID,sub):
 							info += markup[pgoal] + ' **' + event + '**'
 						else:
 							info += markup[ogoal] + ' **' + event + '**'
-					if tag.lower() == 'penalty---missed':
+					if tag.lower() == 'penalty---missed' or tag.lower() == 'penalty---saved':
 						info += markup[mpen] + ' **' + event + '**'
 					if tag.lower() == 'yellow-card':
 						info += markup[yel] + ' ' + event
@@ -482,7 +446,7 @@ def grabEvents(matchID,sub):
 			return ""
 	except:
 #		print "edit failed"
-#		logger.exception('[EDIT ERROR:]')
+		logger.exception('[EDIT ERROR:]')
 		return ""
 
 def getTimes(ko):
@@ -575,7 +539,7 @@ def createNewThread(team1,team2,reqr,sub):
 			return 2,''
 
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
-		if (sub.lower() == 'soccer' or sub.lower() == 'soccerdev') and comp != '':
+		if comp != '':
 			title = title + ' [' + comp + ']'
 		result,thread = submitThread(sub,title)
 		
@@ -593,26 +557,21 @@ def createNewThread(team1,team2,reqr,sub):
 		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
 		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
 		
-		#vidlink = thread.add_comment(vidcomment)
-		
 		if status == 'v':
 			status = "0'"
 			
 		markup = loadMarkup(sub)
 		
-		if sub.lower() == 'soccer':
+		if sub.lower() in spriteSubs:
 			t1sprite = ''
 			t2sprite = ''
-			if getSprite(t1id) != '' and getSprite(t2id) != '':
-				t1sprite = getSprite(t1id)
-				t2sprite = getSprite(t2id)
+			if getSprite(t1id,sub) != '' and getSprite(t2id,sub) != '':
+				t1sprite = getSprite(t1id,sub)
+				t2sprite = getSprite(t2id,sub)
 			body = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [vs](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
 			body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
-#		body += '**Venue:** ' + venue + '\n\n--------\n\n'
-#		body += '/r/soccerstreams\n\n'
-#		body += '[Reddit comments stream](' + redditstream + ')\n\n---------\n\n'
 
 		body += '**Venue:** ' + venue + '\n\n'
 		body += '[Auto-refreshing reddit comments link](' + redditstream + ')\n\n---------\n\n'
@@ -841,12 +800,12 @@ def updateScore(matchID, t1, t2, sub):
 			rightScorers = []
 		
 		t1id,t2id = getTeamIDs(matchID)
-		if sub.lower() == 'soccer' or sub.lower() == 'soccerdev':
+		if sub.lower() in spriteSubs:
 			t1sprite = ''
 			t2sprite = ''
-			if getSprite(t1id) != '' and getSprite(t2id) != '':
-				t1sprite = getSprite(t1id)
-				t2sprite = getSprite(t2id)
+			if getSprite(t1id,sub) != '' and getSprite(t2id,sub) != '':
+				t1sprite = getSprite(t1id,sub)
+				t2sprite = getSprite(t2id,sub)
 			text = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [' + leftScore + '-' + rightScore + '](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 		else:
 			text = '#**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
@@ -889,12 +848,13 @@ def updateThreads():
 		matchID,team1,team2,thread_id,reqr,sub = data
 		thread = r.submission(thread_id)
 		body = thread.selftext
+		#print getTimestamp() + team1 + ' ' + team2
 		venueIndex = body.index('**Venue:**')
 
 		markup = loadMarkup(subreddit)
 		
 		# detect if finished
-		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'AET':
+		if getStatus(matchID) == 'FT' or getStatus(matchID) == 'AET' or getStatus(matchID) == 'Abandoned':
 			finished = True
 		elif getStatus(matchID) == 'FT-Pens':
 			info = getExtraInfo(matchID)
@@ -902,7 +862,7 @@ def updateThreads():
 				info = info.replace('wins','win')
 				finished = True
 		
-		# update lineups (sometimes goal.com changes/updates them)
+		# update lineups
 		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 		lineupIndex = body.index('**LINE-UPS**')
 		bodyTilThen = body[venueIndex:lineupIndex]
@@ -952,7 +912,6 @@ logger.info("[STARTUP]")
 print getTimestamp() + "[STARTUP]"
 
 r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
-#OAuth_login()
 readData()
 
 if len(sys.argv) > 1:
@@ -969,19 +928,27 @@ while running:
 		logger.info("[MANUAL SHUTDOWN]")
 		print getTimestamp() + "[MANUAL SHUTDOWN]\n"
 		running = False
-#	except praw.errors.OAuthInvalidToken:
-#		print getTimestamp() + "Token expired, refreshing"
-#		OAuth_login()
-#	except AssertionError:
-#		print getTimestamp() + "Assertion error, refreshing login"
-#		r.clear_authentication()
-#		r.set_oauth_app_info(client_id=id,client_secret=secret,redirect_uri=redirect)
-#		OAuth_login()
 	except praw.exceptions.APIException:
 		print getTimestamp() + "API error, check log file"
 		logger.exception("[API ERROR:]")
-		sleep(60) 
+		sleep(60)
+	except UnicodeDecodeError:
+		print getTimestamp() + "UnicodeDecodeError, check log file"
+		logger.exception("[UNICODE ERROR:]")
+		unread_messages = []
+		for item in r.inbox.unread(limit=None):
+			if isinstance(item, Message):
+				unread_messages.append(item)
+			r.inbox.mark_read(unread_messages)
+	except UnicodeEncodeError:
+		print getTimestamp() + "UnicodeEncodeError, check log file"
+		logger.exception("[UNICODE ERROR:]")
+		unread_messages = []
+		for item in r.inbox.unread(limit=None):
+			if isinstance(item, Message):
+				unread_messages.append(item)
+			r.inbox.mark_read(unread_messages)
 	except Exception:
 		print getTimestamp() + "Unknown error, check log file"
-		logger.exception('[UNKNOWN ERROR:]')
+		logger.exception("[UNKNOWN ERROR:]")
 		sleep(60) 
