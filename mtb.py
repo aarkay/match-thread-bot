@@ -218,8 +218,8 @@ def getTeamIDs(matchID):
 		
 		teamIDs = re.findall('<div class="team-info">(.*?)</div>', line_html, re.DOTALL)
 		if teamIDs != []:
-			t1id = re.findall('/club/.*?/(.*?)/',teamIDs[0],re.DOTALL)
-			t2id = re.findall('/club/.*?/(.*?)/',teamIDs[1],re.DOTALL)
+			t1id = re.findall('/(?:club|team)/.*?/(.*?)/',teamIDs[0],re.DOTALL)
+			t2id = re.findall('/(?:club|team)/.*?/(.*?)/',teamIDs[1],re.DOTALL)
 			if t1id != []:
 				t1id = t1id[0]
 			else:
@@ -243,9 +243,15 @@ def getLineUps(matchID):
 	
 	if len(split) > 1:
 		team1StartBlock = split[1].split('Substitutes')[0]
-		team1SubBlock= split[1].split('Substitutes')[1]
+		if len(split[1].split('Substitutes')) > 1:
+			team1SubBlock = split[1].split('Substitutes')[1]
+		else:
+			team1SubBlock = ''
 		team2StartBlock = split[2].split('Substitutes')[0]
-		team2SubBlock = split[2].split('Substitutes')[1]
+		if len(split[2].split('Substitutes')) > 1:
+			team2SubBlock = split[2].split('Substitutes')[1]
+		else:
+			team2SubBlock = ''
 		
 		team1Start = []
 		team2Start = []	
