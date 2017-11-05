@@ -41,6 +41,10 @@ usrblacklist = ['dbawbaby',
 # allowed to make multiple threads
 usrwhitelist = ['spawnofyanni',
 				'Omar_Til_Death']
+				
+# allowed to post early threads in given subreddit
+timewhitelist = {'matchthreaddertest': ['spawnofyanni'],
+				 'ussoccer': ['redraven']}
 
 # markup constants
 goal=0;pgoal=1;ogoal=2;mpen=3;yel=4;syel=5;red=6;subst=7;subo=8;subi=9;strms=10;lines=11;evnts=12
@@ -96,12 +100,20 @@ def readData():
 	f.close()
 	
 def resetAll():
+	print getTimestamp() + "Resetting all threads..."
 	removeList = list(activeThreads)
 	for data in removeList:
 		activeThreads.remove(data)
 		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), data[1], data[2], data[5])
 		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + data[1] + " vs " + data[2] + " (/r/" + data[5] + ")"
 		saveData()
+	print "complete."
+		
+def flushMsgs():
+	print getTimestamp() + "Flushing messages..."
+	for msg in r.inbox.unread(limit=None):
+		msg.mark_read()
+	print "complete."
 
 def loadMarkup(subreddit):
 	try:
@@ -264,6 +276,7 @@ def getLineUps(matchID):
 		t2SubInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team2SubBlock, re.DOTALL)
 
 		for playerInfo in t1StartInfo:
+			playerInfo = playerInfo.replace('\t','').replace('\n','')
 			playerNum = playerInfo[0:6]
 			if '%' not in playerNum:
 				playertext = ''
@@ -272,12 +285,14 @@ def getLineUps(matchID):
 				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
 				team1Start.append(playertext)
 		for playerInfo in t1SubInfo:
+			playerInfo = playerInfo.replace('\t','').replace('\n','')
 			playerNum = playerInfo[0:6]
 			if '%' not in playerNum:
 				playertext = ''
 				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
 				team1Sub.append(playertext)
 		for playerInfo in t2StartInfo:
+			playerInfo = playerInfo.replace('\t','').replace('\n','')
 			playerNum = playerInfo[0:6]
 			if '%' not in playerNum:
 				playertext = ''
@@ -286,28 +301,29 @@ def getLineUps(matchID):
 				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
 				team2Start.append(playertext)				
 		for playerInfo in t2SubInfo:
+			playerInfo = playerInfo.replace('\t','').replace('\n','')
 			playerNum = playerInfo[0:6]
 			if '%' not in playerNum:
 				playertext = ''
 				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
 				team2Sub.append(playertext)
 		
-		# if no players found, ie TBA
+		# if no players found:
 		if team1Start == []:
-			team1Start = ["TBA"]
+			team1Start = ["*Not available*"]
 		if team1Sub == []:
-			team1Sub = ["TBA"]
+			team1Sub = ["*Not available*"]
 		if team2Start == []:
-			team2Start = ["TBA"]
+			team2Start = ["*Not available*"]
 		if team2Sub == []:
-			team2Sub = ["TBA"]
+			team2Sub = ["*Not available*"]
 		return team1Start,team1Sub,team2Start,team2Sub
 	
 	else:
-		team1Start = ["TBA"]
-		team1Sub = ["TBA"]
-		team2Start = ["TBA"]
-		team2Sub = ["TBA"]
+		team1Start = ["*Not available*"]
+		team1Sub = ["*Not available*"]
+		team2Start = ["*Not available*"]
+		team2Sub = ["*Not available*"]
 		return team1Start,team1Sub,team2Start,team2Sub
 	
 # get venue, ref, lineups, etc from ESPN	
@@ -403,6 +419,9 @@ def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Su
 	body += ", ".join(x for x in team2Sub) + "."
 	
 	return body
+	
+#def customLineUps(matchID,t1lineups,t2lineups):
+	
 
 def grabEvents(matchID,sub):
 	markup = loadMarkup(sub)
@@ -527,22 +546,23 @@ def createNewThread(team1,team2,reqr,sub):
 			return 3,''
 		
 		# don't create a thread more than 5 minutes before kickoff
-		hour_i, min_i, now = getTimes(ko_time)
-		now_f = now + datetime.timedelta(hours = 4, minutes = 5)
-		if ko_day == '':
-			return 1,''
-		if now_f.day < int(ko_day):
-			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
-			return 2,''
-		if now_f.hour < hour_i:
-			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
-			return 2,''
-		if (now_f.hour == hour_i) and (now_f.minute < min_i):
-			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-			logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
-			return 2,''
+		if sub.lower() not in timewhitelist or sub.lower() in timewhitelist and reqr.lower() not in timewhitelist[sub.lower()]:
+			hour_i, min_i, now = getTimes(ko_time)
+			now_f = now + datetime.timedelta(hours = 5, minutes = 5)
+			if ko_day == '':
+				return 1,''
+			if now_f.day < int(ko_day):
+				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
+				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
+				return 2,''
+			if now_f.hour < hour_i:
+				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
+				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
+				return 2,''
+			if (now_f.hour == hour_i) and (now_f.minute < min_i):
+				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
+				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
+				return 2,''
 
 		title = 'Match Thread: ' + t1 + ' vs ' + t2
 		if comp != '':
@@ -682,11 +702,12 @@ def checkAndCreate():
 	if len(activeThreads) > 0:		
 		print getTimestamp() + "Checking messages..."
 	delims = [' x ',' - ',' v ',' vs ']
-	unread_messages = []
+	#unread_messages = []
 	subdel = ' for '
 	for msg in r.inbox.unread(limit=None):
-		if isinstance(msg, Message):
-			unread_messages.append(msg)
+		msg.mark_read()
+		#if isinstance(msg, Message):
+		#	unread_messages.append(msg)
 		sub = subreddit
 		if msg.subject.lower() == 'match thread':
 			subreq = msg.body.split(subdel,2)
@@ -760,7 +781,7 @@ def checkAndCreate():
 						msg.reply("Deleted " + name)
 	if len(activeThreads) > 0:						
 		print getTimestamp() + "All messages checked."
-	r.inbox.mark_read(unread_messages)
+	#r.inbox.mark_read(unread_messages)
 				
 def getExtraInfo(matchID):
 	try:
@@ -921,25 +942,32 @@ r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
 readData()
 
 if len(sys.argv) > 1:
-	if sys.argv[1] == 'reset':
+	if sys.argv[1] == '--reset':
 		resetAll()
+	if sys.argv[1] == '--flush':
+		flushMsgs()
+
 
 running = True
+retries = 0
 while running:
 	try:
 		checkAndCreate()
 		updateThreads()
+		retries = 0
 		sleep(60)
 	except KeyboardInterrupt:
 		logger.info("[MANUAL SHUTDOWN]")
 		print getTimestamp() + "[MANUAL SHUTDOWN]\n"
 		running = False
 	except praw.exceptions.APIException:
-		print getTimestamp() + "API error, check log file"
+		retries += 1
+		print getTimestamp() + "API error, check log file [retries = " + str(retries) + "]"
 		logger.exception("[API ERROR:]")
 		sleep(60)
 	except UnicodeDecodeError:
-		print getTimestamp() + "UnicodeDecodeError, check log file"
+		retries += 1
+		print getTimestamp() + "UnicodeDecodeError, check log file [retries = " + str(retries) + "]"
 		logger.exception("[UNICODE ERROR:]")
 		unread_messages = []
 		for item in r.inbox.unread(limit=None):
@@ -947,7 +975,8 @@ while running:
 				unread_messages.append(item)
 			r.inbox.mark_read(unread_messages)
 	except UnicodeEncodeError:
-		print getTimestamp() + "UnicodeEncodeError, check log file"
+		retries += 1
+		print getTimestamp() + "UnicodeEncodeError, check log file [retries = " + str(retries) + "]"
 		logger.exception("[UNICODE ERROR:]")
 		unread_messages = []
 		for item in r.inbox.unread(limit=None):
@@ -955,6 +984,10 @@ while running:
 				unread_messages.append(item)
 			r.inbox.mark_read(unread_messages)
 	except Exception:
-		print getTimestamp() + "Unknown error, check log file"
+		retries += 1
+		print getTimestamp() + "Unknown error, check log file [retries = " + str(retries) + "]"
 		logger.exception("[UNKNOWN ERROR:]")
 		sleep(60) 
+	if retries >= 60:
+		resetAll()
+		flushMsgs()
