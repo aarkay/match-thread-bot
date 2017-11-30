@@ -100,6 +100,7 @@ def readData():
 	f.close()
 	
 def resetAll():
+	logger.info("[RESET ALL]")
 	print getTimestamp() + "Resetting all threads..."
 	removeList = list(activeThreads)
 	for data in removeList:
@@ -110,6 +111,7 @@ def resetAll():
 	print "complete."
 		
 def flushMsgs():
+	logger.info("[FLUSH MSGS]")
 	print getTimestamp() + "Flushing messages..."
 	for msg in r.inbox.unread(limit=None):
 		msg.mark_read()
@@ -230,8 +232,8 @@ def getTeamIDs(matchID):
 		
 		teamIDs = re.findall('<div class="team-info">(.*?)</div>', line_html, re.DOTALL)
 		if teamIDs != []:
-			t1id = re.findall('/(?:club|team)/.*?/(.*?)/',teamIDs[0],re.DOTALL)
-			t2id = re.findall('/(?:club|team)/.*?/(.*?)/',teamIDs[1],re.DOTALL)
+			t1id = re.findall('/(?:club|team)/.*?/.*?/(.*?)"',teamIDs[0],re.DOTALL)
+			t2id = re.findall('/(?:club|team)/.*?/.*?/(.*?)"',teamIDs[1],re.DOTALL)
 			if t1id != []:
 				t1id = t1id[0]
 			else:
@@ -247,85 +249,93 @@ def getTeamIDs(matchID):
 		return '','' 
 		
 def getLineUps(matchID):
-	# try to find line-ups
-	lineAddress = "http://www.espnfc.us/lineups?gameId=" + matchID
-	lineWebsite = requests.get(lineAddress, timeout=15)
-	line_html = lineWebsite.text
-	split = line_html.split('<div class="sub-module soccer">') # [0]:nonsense [1]:team1 [2]:team2
-	
-	if len(split) > 1:
-		team1StartBlock = split[1].split('Substitutes')[0]
-		if len(split[1].split('Substitutes')) > 1:
-			team1SubBlock = split[1].split('Substitutes')[1]
-		else:
-			team1SubBlock = ''
-		team2StartBlock = split[2].split('Substitutes')[0]
-		if len(split[2].split('Substitutes')) > 1:
-			team2SubBlock = split[2].split('Substitutes')[1]
-		else:
-			team2SubBlock = ''
+	try:
+		# try to find line-ups
+		lineAddress = "http://www.espnfc.us/lineups?gameId=" + matchID
+		lineWebsite = requests.get(lineAddress, timeout=15)
+		line_html = lineWebsite.text
+		split = line_html.split('<div class="sub-module soccer">') # [0]:nonsense [1]:team1 [2]:team2
 		
-		team1Start = []
-		team2Start = []	
-		team1Sub = []
-		team2Sub = []
-		
-		t1StartInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team1StartBlock, re.DOTALL)
-		t1SubInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team1SubBlock, re.DOTALL)
-		t2StartInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team2StartBlock, re.DOTALL)
-		t2SubInfo = re.findall('"accordion-item" data-id="(.*?)/a>', team2SubBlock, re.DOTALL)
+		if len(split) > 1:
+			team1StartBlock = split[1].split('Substitutes')[0]
+			if len(split[1].split('Substitutes')) > 1:
+				team1SubBlock = split[1].split('Substitutes')[1]
+			else:
+				team1SubBlock = ''
+			team2StartBlock = split[2].split('Substitutes')[0]
+			if len(split[2].split('Substitutes')) > 1:
+				team2SubBlock = split[2].split('Substitutes')[1]
+			else:
+				team2SubBlock = ''
+			
+			team1Start = []
+			team2Start = []	
+			team1Sub = []
+			team2Sub = []
+			
+			t1StartInfo = re.findall('"accordion-item" data-id="(.*?)</div>', team1StartBlock, re.DOTALL)
+			t1SubInfo = re.findall('"accordion-item" data-id="(.*?)</div>', team1SubBlock, re.DOTALL)
+			t2StartInfo = re.findall('"accordion-item" data-id="(.*?)</div>', team2StartBlock, re.DOTALL)
+			t2SubInfo = re.findall('"accordion-item" data-id="(.*?)</div>', team2SubBlock, re.DOTALL)
 
-		for playerInfo in t1StartInfo:
-			playerInfo = playerInfo.replace('\t','').replace('\n','')
-			playerNum = playerInfo[0:6]
-			if '%' not in playerNum:
-				playertext = ''
-				if 'icon-soccer-substitution-before' in playerInfo:
-					playertext += '!sub '
-				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
-				team1Start.append(playertext)
-		for playerInfo in t1SubInfo:
-			playerInfo = playerInfo.replace('\t','').replace('\n','')
-			playerNum = playerInfo[0:6]
-			if '%' not in playerNum:
-				playertext = ''
-				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
-				team1Sub.append(playertext)
-		for playerInfo in t2StartInfo:
-			playerInfo = playerInfo.replace('\t','').replace('\n','')
-			playerNum = playerInfo[0:6]
-			if '%' not in playerNum:
-				playertext = ''
-				if 'icon-soccer-substitution-before' in playerInfo:
-					playertext += '!sub '
-				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
-				team2Start.append(playertext)				
-		for playerInfo in t2SubInfo:
-			playerInfo = playerInfo.replace('\t','').replace('\n','')
-			playerNum = playerInfo[0:6]
-			if '%' not in playerNum:
-				playertext = ''
-				playertext += re.findall('<span class="name"><a href.*?>(.*?)<', playerInfo, re.DOTALL)[0]
-				team2Sub.append(playertext)
+			for playerInfo in t1StartInfo:
+				playerInfo = playerInfo.replace('\t','').replace('\n','')
+				playerNum = playerInfo[0:6]
+				if '%' not in playerNum:
+					playertext = ''
+					if 'icon-soccer-substitution-before' in playerInfo:
+						playertext += '!sub '
+					playertext += re.findall('<span class="name">(?!<)(.*?)[<|&]', playerInfo, re.DOTALL)[0]
+					team1Start.append(playertext)
+			for playerInfo in t1SubInfo:
+				playerInfo = playerInfo.replace('\t','').replace('\n','')
+				playerNum = playerInfo[0:6]
+				if '%' not in playerNum:
+					playertext = ''
+					playertext += re.findall('<span class="name">(?!<)(.*?)[<|&]', playerInfo, re.DOTALL)[0]
+					team1Sub.append(playertext)
+			for playerInfo in t2StartInfo:
+				playerInfo = playerInfo.replace('\t','').replace('\n','')
+				playerNum = playerInfo[0:6]
+				if '%' not in playerNum:
+					playertext = ''
+					if 'icon-soccer-substitution-before' in playerInfo:
+						playertext += '!sub '
+					playertext += re.findall('<span class="name">(?!<)(.*?)[<|&]', playerInfo, re.DOTALL)[0]
+					team2Start.append(playertext)				
+			for playerInfo in t2SubInfo:
+				playerInfo = playerInfo.replace('\t','').replace('\n','')
+				playerNum = playerInfo[0:6]
+				if '%' not in playerNum:
+					playertext = ''
+					playertext += re.findall('<span class="name">(?!<)(.*?)[<|&]', playerInfo, re.DOTALL)[0]
+					team2Sub.append(playertext)
+			
+			# if no players found:
+			if team1Start == []:
+				team1Start = ["*Not available*"]
+			if team1Sub == []:
+				team1Sub = ["*Not available*"]
+			if team2Start == []:
+				team2Start = ["*Not available*"]
+			if team2Sub == []:
+				team2Sub = ["*Not available*"]
+			return team1Start,team1Sub,team2Start,team2Sub
 		
-		# if no players found:
-		if team1Start == []:
+		else:
 			team1Start = ["*Not available*"]
-		if team1Sub == []:
 			team1Sub = ["*Not available*"]
-		if team2Start == []:
 			team2Start = ["*Not available*"]
-		if team2Sub == []:
 			team2Sub = ["*Not available*"]
-		return team1Start,team1Sub,team2Start,team2Sub
-	
-	else:
+			return team1Start,team1Sub,team2Start,team2Sub
+	except IndexError:
+		logger.warning("[INDEX ERROR:]")
 		team1Start = ["*Not available*"]
 		team1Sub = ["*Not available*"]
 		team2Start = ["*Not available*"]
 		team2Sub = ["*Not available*"]
 		return team1Start,team1Sub,team2Start,team2Sub
-	
+
 # get venue, ref, lineups, etc from ESPN	
 def getMatchInfo(matchID):
 	lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
@@ -928,14 +938,14 @@ def updateThreads():
 		saveData()
 
 logger = logging.getLogger('a')
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 logfilename = 'log.log'
 handler = logging.handlers.RotatingFileHandler(logfilename,maxBytes = 50000,backupCount = 5) 
-handler.setLevel(logging.ERROR)
+handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.info("[STARTUP]")
+logger.warning("[STARTUP]")
 print getTimestamp() + "[STARTUP]"
 
 r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
@@ -957,7 +967,7 @@ while running:
 		retries = 0
 		sleep(60)
 	except KeyboardInterrupt:
-		logger.info("[MANUAL SHUTDOWN]")
+		logger.warning("[MANUAL SHUTDOWN]")
 		print getTimestamp() + "[MANUAL SHUTDOWN]\n"
 		running = False
 	except praw.exceptions.APIException:
@@ -969,20 +979,12 @@ while running:
 		retries += 1
 		print getTimestamp() + "UnicodeDecodeError, check log file [retries = " + str(retries) + "]"
 		logger.exception("[UNICODE ERROR:]")
-		unread_messages = []
-		for item in r.inbox.unread(limit=None):
-			if isinstance(item, Message):
-				unread_messages.append(item)
-			r.inbox.mark_read(unread_messages)
+		flushMsgs()
 	except UnicodeEncodeError:
 		retries += 1
 		print getTimestamp() + "UnicodeEncodeError, check log file [retries = " + str(retries) + "]"
 		logger.exception("[UNICODE ERROR:]")
-		unread_messages = []
-		for item in r.inbox.unread(limit=None):
-			if isinstance(item, Message):
-				unread_messages.append(item)
-			r.inbox.mark_read(unread_messages)
+		flushMsgs()
 	except Exception:
 		retries += 1
 		print getTimestamp() + "Unknown error, check log file [retries = " + str(retries) + "]"
