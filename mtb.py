@@ -44,7 +44,8 @@ usrwhitelist = ['spawnofyanni',
 				
 # allowed to post early threads in given subreddit
 timewhitelist = {'matchthreaddertest': ['spawnofyanni'],
-				 'ussoccer': ['redravens']}
+				 'ussoccer': ['redravens'],
+				 'coyssandbox': ['wardamnspurs']}
 
 # markup constants
 goal=0;pgoal=1;ogoal=2;mpen=3;yel=4;syel=5;red=6;subst=7;subo=8;subi=9;strms=10;lines=11;evnts=12
@@ -138,6 +139,7 @@ def getRelatedSubreddits():
 	subs.append(u'bih')
 	subs.append(u'soccerdev')
 	subs.append(u'whufc')
+	subs.append(u'coyssandbox')
 	subs = [x.lower() for x in subs]
 	return subs
 	
@@ -442,9 +444,10 @@ def grabEvents(matchID,sub):
 	try:
 		if lineWebsite.status_code == 200:
 			body = ""
-			split = line_html.split('<h1>Key Events</h1>') # [0]:stuff [1]:key events
-			
-			events = re.findall('<tr data-id=(.*?)</tr>',split[1],re.DOTALL)
+			split_all = line_html.split('<h1>Match Commentary</h1>') # [0]:stuff [1]:commentary + key events
+			split = split_all[1].split('<h1>Key Events</h1>') # [0]:commentary [1]: key events
+		
+			events = re.findall('<tr data-id=(.*?)</tr>',split[0],re.DOTALL)
 			events = events[::-1]
 			
 			# will only report goals (+ penalties, own goals), yellows, reds, subs
@@ -550,10 +553,11 @@ def createNewThread(team1,team2,reqr,sub):
 				return 7,''
 		
 		# don't create a thread if the match is done (probably found the wrong match)
-		if status.startswith('FT') or status == 'AET':
-			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
-			logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
-			return 3,''
+		if reqr != admin:
+			if status.startswith('FT') or status == 'AET':
+				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
+				logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
+				return 3,''
 		
 		# don't create a thread more than 5 minutes before kickoff
 		if sub.lower() not in timewhitelist or sub.lower() in timewhitelist and reqr.lower() not in timewhitelist[sub.lower()]:
@@ -962,6 +966,9 @@ running = True
 retries = 0
 while running:
 	try:
+		if retries >= 60:
+			resetAll()
+			flushMsgs()
 		checkAndCreate()
 		updateThreads()
 		retries = 0
@@ -990,6 +997,3 @@ while running:
 		print getTimestamp() + "Unknown error, check log file [retries = " + str(retries) + "]"
 		logger.exception("[UNKNOWN ERROR:]")
 		sleep(60) 
-	if retries >= 60:
-		resetAll()
-		flushMsgs()
