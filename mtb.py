@@ -562,7 +562,7 @@ def createNewThread(team1,team2,reqr,sub):
 		# don't create a thread more than 5 minutes before kickoff
 		if sub.lower() not in timewhitelist or sub.lower() in timewhitelist and reqr.lower() not in timewhitelist[sub.lower()]:
 			hour_i, min_i, now = getTimes(ko_time)
-			now_f = now + datetime.timedelta(hours = 5, minutes = 5)
+			now_f = now + datetime.timedelta(hours = 4, minutes = 5)
 			if ko_day == '':
 				return 1,''
 			if now_f.day < int(ko_day):
@@ -622,6 +622,8 @@ def createNewThread(team1,team2,reqr,sub):
 		#[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 		
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espnfc.us/match?gameId=' + matchID + ')*\n\n'
+		body += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^Click ^here](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
+
 		
 		if botstat != 'green':
 			body += '*' + statmsg + '*\n\n'
@@ -922,6 +924,7 @@ def updateThreads():
 		
 		events = grabEvents(matchID,sub)
 		newbody += '\n\n' + events
+		newbody += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^Click ^here](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
 
 		# save data
 		if newbody != body:
