@@ -45,7 +45,8 @@ usrwhitelist = ['spawnofyanni',
 # allowed to post early threads in given subreddit
 timewhitelist = {'matchthreaddertest': ['spawnofyanni'],
 				 'ussoccer': ['redravens'],
-				 'coyssandbox': ['wardamnspurs']}
+				 'coyssandbox': ['wardamnspurs'],
+				 'rsca': ['GhustBE']}
 
 # markup constants
 goal=0;pgoal=1;ogoal=2;mpen=3;yel=4;syel=5;red=6;subst=7;subo=8;subi=9;strms=10;lines=11;evnts=12
@@ -140,6 +141,7 @@ def getRelatedSubreddits():
 	subs.append(u'soccerdev')
 	subs.append(u'whufc')
 	subs.append(u'coyssandbox')
+	subs.append(u'reallfc')
 	subs = [x.lower() for x in subs]
 	return subs
 	
@@ -151,7 +153,7 @@ def getBotStatus():
 	
 # get current match time/status
 def getStatus(matchID):
-	lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
+	lineAddress = "http://www.espn.com/soccer/match?gameId=" + matchID
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 	if lineWebsite.status_code == 200:
@@ -189,24 +191,37 @@ def findMatchSite(team1, team2):
 		t1 = team1.split()
 		t2 = team2.split()
 		linkList = []
-		fixAddress = "http://www.espnfc.us/scores"
+		fixAddress = "http://www.espn.com/soccer/scoreboard"
 		fixWebsite = requests.get(fixAddress, timeout=15)
 		fix_html = fixWebsite.text
-		matches = fix_html.split('<div id="score-leagues">')[1]
-		names = re.findall('<div class="team-names">(.*?)Game Details', matches, re.DOTALL)
+		matches = fix_html.split('window.espn.scoreboardData')[1]
+		matches = matches.split('<body class="scoreboard')[0]
+		names = matches.split('"text":"Statistics"')
+		del names[-1]
 		for match in names:
-			matchID = re.findall('gameId=(.*?)"', match, re.DOTALL)[0]
-			ESPNteams = re.findall('<div class="team-name">.*?<span>.*?>(.*?)</span>', match, re.DOTALL)
-			for word in t1:
-				if remove_accents(ESPNteams[0].lower()).find(remove_accents(word.lower())) != -1:
-					linkList.append(matchID)
-				if remove_accents(ESPNteams[1].lower()).find(remove_accents(word.lower())) != -1:
-					linkList.append(matchID)
-			for word in t2:
-				if remove_accents(ESPNteams[0].lower()).find(remove_accents(word.lower())) != -1:
-					linkList.append(matchID)
-				if remove_accents(ESPNteams[1].lower()).find(remove_accents(word.lower())) != -1:
-					linkList.append(matchID)		
+			check = True
+			matchID = re.findall('"homeAway":.*?"href":".*?gameId=(.*?)",', match, re.DOTALL)[0][0:6]
+			homeTeam = re.findall('"homeAway":"home".*?"team":{"a.*?"displayName":"(.*?)"', match, re.DOTALL)
+			if len(homeTeam) > 0:
+				homeTeam = homeTeam[0]
+			else:
+				check = False
+			awayTeam = re.findall('"homeAway":"away".*?"team":{"a.*?"displayName":"(.*?)"', match, re.DOTALL)
+			if len(awayTeam) > 0:
+				awayTeam = awayTeam[0]
+			else:
+				check = False
+			if check:
+				for word in t1:
+					if remove_accents(homeTeam.lower()).find(remove_accents(word.lower())) != -1:
+						linkList.append(matchID)
+					if remove_accents(awayTeam.lower()).find(remove_accents(word.lower())) != -1:
+						linkList.append(matchID)
+				for word in t2:
+					if remove_accents(homeTeam.lower()).find(remove_accents(word.lower())) != -1:
+						linkList.append(matchID)
+					if remove_accents(awayTeam.lower()).find(remove_accents(word.lower())) != -1:
+						linkList.append(matchID)		
 		counts = Counter(linkList)
 		if counts.most_common(1) != []:
 			freqs = groupby(counts.most_common(), lambda x:x[1])
@@ -223,12 +238,12 @@ def findMatchSite(team1, team2):
 			print "complete."
 			return 'no match'
 	except requests.exceptions.Timeout:
-		print "goal.com access timeout"
+		print "ESPN access timeout"
 		return 'no match'
 
 def getTeamIDs(matchID):
 	try:
-		lineAddress = "http://www.espnfc.us/match?gameId=" + matchID	
+		lineAddress = "http://www.espn.com/soccer/match?gameId=" + matchID	
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		
@@ -253,7 +268,7 @@ def getTeamIDs(matchID):
 def getLineUps(matchID):
 	try:
 		# try to find line-ups
-		lineAddress = "http://www.espnfc.us/lineups?gameId=" + matchID
+		lineAddress = "http://www.espn.com/soccer/lineups?gameId=" + matchID
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		split = line_html.split('<div class="sub-module soccer">') # [0]:nonsense [1]:team1 [2]:team2
@@ -340,7 +355,7 @@ def getLineUps(matchID):
 
 # get venue, ref, lineups, etc from ESPN	
 def getMatchInfo(matchID):
-	lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
+	lineAddress = "http://www.espn.com/soccer/match?gameId=" + matchID
 	print getTimestamp() + "Finding ESPNFC info from " + lineAddress + "...",
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
@@ -437,7 +452,7 @@ def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Su
 
 def grabEvents(matchID,sub):
 	markup = loadMarkup(sub)
-	lineAddress = "http://www.espnfc.us/commentary?gameId=" + matchID
+	lineAddress = "http://www.espn.com/soccer/commentary?gameId=" + matchID
 #	print getTimestamp() + "Grabbing events from " + lineAddress + "...",
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
@@ -562,7 +577,7 @@ def createNewThread(team1,team2,reqr,sub):
 		# don't create a thread more than 5 minutes before kickoff
 		if sub.lower() not in timewhitelist or sub.lower() in timewhitelist and reqr.lower() not in timewhitelist[sub.lower()]:
 			hour_i, min_i, now = getTimes(ko_time)
-			now_f = now + datetime.timedelta(hours = 4, minutes = 5)
+			now_f = now + datetime.timedelta(hours = 5, minutes = 5)
 			if ko_day == '':
 				return 1,''
 			if now_f.day < int(ko_day):
@@ -621,8 +636,8 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		#[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 		
-		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espnfc.us/match?gameId=' + matchID + ')*\n\n'
-		body += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^Click ^here](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
+		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espn.com/soccer/match?gameId=' + matchID + ')*\n\n'
+		body += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^(Click here)](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
 
 		
 		if botstat != 'green':
@@ -715,6 +730,7 @@ def firstTryTeams(msg):
 
 # check for new mail, create new threads if needed
 def checkAndCreate():
+	detour = False
 	if len(activeThreads) > 0:		
 		print getTimestamp() + "Checking messages..."
 	delims = [' x ',' - ',' v ',' vs ']
@@ -726,55 +742,61 @@ def checkAndCreate():
 		#	unread_messages.append(msg)
 		sub = subreddit
 		if msg.subject.lower() == 'match thread':
-			subreq = msg.body.split(subdel,2)
-			if subreq[0] != msg.body:
-				sub = subreq[1].split('/')[-1]
-				sub = sub.lower()
-				sub = sub.strip()
-			teams = firstTryTeams(subreq[0])
-			for delim in delims:
-				attempt = subreq[0].split(delim,2)
-				if attempt[0] != subreq[0]:
-					teams = attempt
-			# euroteams = ['italy','republic of ireland','ireland','sweden','belgium','iceland','austria','hungary','portugal','switzerland','poland','croatia','wales','germany','spain','france','england']
-			# if teams[0].lower() in euroteams or teams[1].lower() in euroteams:
-				# msg.reply("Sorry, this bot can't be used for Euro 2016 matches. [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to you make your own match thread!\n\n--------------\n\n[^Why ^doesn't ^the ^bot ^work ^for ^Euro ^2016?](https://www.reddit.com/r/soccer/comments/4oun18/match_thread_switzerland_vs_france_euro_2016/d4fn9n8)")
-				# print getTimestamp() + "Denied a Euro 2016 thread: " + msg.body
-			#else:
-			threadStatus,thread_id = createNewThread(teams[0],teams[1],msg.author.name,sub)
-			if messaging:
-				if threadStatus == 0: # thread created successfully
-					msg.reply("[Here](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*")
-					if notify:
-						r.send_message(admin,"Match thread request fulfilled","/u/" + msg.author.name + " requested " + teams[0] + " vs " + teams[1] + " in /r/" + sub + ". \n\n[Thread link](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") | [Deletion link](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ")")
-				if threadStatus == 1: # not found
-					msg.reply("Sorry, I couldn't find info for that match. If the match you requested appears on [this page](http://www.espnfc.us/scores), please let /u/spawnofyanni know about this error.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
-				if threadStatus == 2: # before kickoff
-					msg.reply("Please wait until at least 5 minutes to kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
-				if threadStatus == 3: # after full time - probably found the wrong match
-					msg.reply("Sorry, I couldn't find a currently live match with those teams - are you sure the match has started (and hasn't finished)? If you think this is a mistake, it probably means I can't find that match.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
-				if threadStatus == 4: # thread already exists
-					msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
-				if threadStatus == 5: # invalid subreddit
-					msg.reply("Sorry, I couldn't post to /r/" + sub + ". It may not exist, or I may have hit a posting limit.")
-				if threadStatus == 6: # sub blacklisted
-					msg.reply("Sorry, I can't post to /r/" + sub + ". Please message /u/" + admin + " if you think this is a mistake.")
-				if threadStatus == 7: # thread limit
-					msg.reply("Sorry, you can only have one active thread request at a time.")
-				if threadStatus == 8: # status set to red
-					msg.reply("Sorry, the bot is currently unable to post threads. Check with /u/" + admin + " for more info; this should hopefully be resolved soon.")
-				
+			if detour and msg.author.name != admin:
+				msg.reply('/u/MatchThreadder is down for maintenance (starting Dec 5). The bot should be back up in a few days. Keep an eye out for when it starts posting threads again - message /u/spawnofyanni if you have any questions!\n\n--------------\n\n[Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to make your own match thread.')
+			else:
+				subreq = msg.body.split(subdel,2)
+				if subreq[0] != msg.body:
+					sub = subreq[1].split('/')[-1]
+					sub = sub.lower()
+					sub = sub.strip()
+				teams = firstTryTeams(subreq[0])
+				for delim in delims:
+					attempt = subreq[0].split(delim,2)
+					if attempt[0] != subreq[0]:
+						teams = attempt
+				# euroteams = ['italy','republic of ireland','ireland','sweden','belgium','iceland','austria','hungary','portugal','switzerland','poland','croatia','wales','germany','spain','france','england']
+				# if teams[0].lower() in euroteams or teams[1].lower() in euroteams:
+					# msg.reply("Sorry, this bot can't be used for Euro 2016 matches. [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to you make your own match thread!\n\n--------------\n\n[^Why ^doesn't ^the ^bot ^work ^for ^Euro ^2016?](https://www.reddit.com/r/soccer/comments/4oun18/match_thread_switzerland_vs_france_euro_2016/d4fn9n8)")
+					# print getTimestamp() + "Denied a Euro 2016 thread: " + msg.body
+				#else:
+				threadStatus,thread_id = createNewThread(teams[0],teams[1],msg.author.name,sub)
+				if messaging:
+					if threadStatus == 0: # thread created successfully
+						msg.reply("[Here](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*")
+						if notify:
+							r.send_message(admin,"Match thread request fulfilled","/u/" + msg.author.name + " requested " + teams[0] + " vs " + teams[1] + " in /r/" + sub + ". \n\n[Thread link](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") | [Deletion link](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ")")
+					if threadStatus == 1: # not found
+						msg.reply("Sorry, I couldn't find info for that match. If the match you requested appears on [this page](http://www.espn.com/soccer/scores), please let /u/spawnofyanni know about this error.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
+					if threadStatus == 2: # before kickoff
+						msg.reply("Please wait until at least 5 minutes to kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
+					if threadStatus == 3: # after full time - probably found the wrong match
+						msg.reply("Sorry, I couldn't find a currently live match with those teams - are you sure the match has started (and hasn't finished)? If you think this is a mistake, it probably means I can't find that match.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
+					if threadStatus == 4: # thread already exists
+						msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
+					if threadStatus == 5: # invalid subreddit
+						msg.reply("Sorry, I couldn't post to /r/" + sub + ". It may not exist, or I may have hit a posting limit.")
+					if threadStatus == 6: # sub blacklisted
+						msg.reply("Sorry, I can't post to /r/" + sub + ". Please message /u/" + admin + " if you think this is a mistake.")
+					if threadStatus == 7: # thread limit
+						msg.reply("Sorry, you can only have one active thread request at a time.")
+					if threadStatus == 8: # status set to red
+						msg.reply("Sorry, the bot is currently unable to post threads. Check with /u/" + admin + " for more info; this should hopefully be resolved soon.")
+					
 		if msg.subject.lower() == 'match info':
-			teams = firstTryTeams(msg.body)
-			for delim in delims:
-				attempt = msg.body.split(delim,2)
-				if attempt[0] != msg.body:
-					teams = attempt
-			threadStatus,text = createMatchInfo(teams[0],teams[1])
-			if threadStatus == 0: # successfully found info
-				msg.reply("Below is the information for the match you've requested.\n\nIf you're using [RES](http://redditenhancementsuite.com/), you can use the 'source' button below this message to copy/paste the exact formatting code. If you aren't, you'll have to add the formatting yourself.\n\n----------\n\n" + text)
-			if threadStatus == 1: # not found
-				msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
+			if detour:
+				msg.reply('/u/MatchThreadder is down for maintenance (starting Dec 5). The bot should be back up in a few days. Keep an eye out for when it starts posting threads again - message /u/spawnofyanni if you have any questions!\n\n--------------\n\n[Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to make your own match thread.')
+			else:
+				teams = firstTryTeams(msg.body)
+				for delim in delims:
+					attempt = msg.body.split(delim,2)
+					if attempt[0] != msg.body:
+						teams = attempt
+				threadStatus,text = createMatchInfo(teams[0],teams[1])
+				if threadStatus == 0: # successfully found info
+					msg.reply("Below is the information for the match you've requested.\n\nIf you're using [RES](http://redditenhancementsuite.com/), you can use the 'source' button below this message to copy/paste the exact formatting code. If you aren't, you'll have to add the formatting yourself.\n\n----------\n\n" + text)
+				if threadStatus == 1: # not found
+					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
 		
 		if msg.subject.lower() == 'delete':
 			if msg.author.name == admin:
@@ -801,7 +823,7 @@ def checkAndCreate():
 				
 def getExtraInfo(matchID):
 	try:
-		lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
+		lineAddress = "http://www.espn.com/soccer/match?gameId=" + matchID
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		info = re.findall('data-stat="note">(.*?)<',line_html,re.DOTALL)
@@ -815,7 +837,7 @@ def getExtraInfo(matchID):
 # update score, scorers
 def updateScore(matchID, t1, t2, sub):
 	try:
-		lineAddress = "http://www.espnfc.us/match?gameId=" + matchID
+		lineAddress = "http://www.espn.com/soccer/match?gameId=" + matchID
 		lineWebsite = requests.get(lineAddress, timeout=15)
 		line_html = lineWebsite.text
 		leftScore = re.findall('data-stat="score">(.*?)<',line_html,re.DOTALL)[0].strip()
@@ -901,10 +923,10 @@ def updateThreads():
 			finished = True
 		elif getStatus(matchID) == 'FT-Pens':
 			info = getExtraInfo(matchID)
+			finished = True
 			if 'wins' in info or 'win' in info:
 				info = info.replace('wins','win')
-				finished = True
-		
+			
 		# update lineups
 		team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
 		lineupIndex = body.index('**LINE-UPS**')
@@ -912,7 +934,7 @@ def updateThreads():
 		
 		t1id,t2id = getTeamIDs(matchID)
 		newbody = writeLineUps(sub,bodyTilThen,team1,t1id,team2,t2id,team1Start,team1Sub,team2Start,team2Sub)
-		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espnfc.us/match?gameId=' + matchID + ')*\n\n'
+		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espn.com/soccer/match?gameId=' + matchID + ')*\n\n'
 		
 		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
@@ -924,7 +946,7 @@ def updateThreads():
 		
 		events = grabEvents(matchID,sub)
 		newbody += '\n\n' + events
-		newbody += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^Click ^here](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
+		newbody += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^(Click here)](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
 
 		# save data
 		if newbody != body:

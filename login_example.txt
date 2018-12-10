@@ -1,1 +1,1 @@
-iliketotestthings:TestThreadBot:ThisIsATestPassword:SubForTesting:TestThreadBot v0.1 by /u/iliketotestthings
+adminname||botname||botpassword||defaultsub||Bot Description by /u/whoever||oauth_ID||oauth_secret||http://oath_redirect_url
