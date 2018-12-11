@@ -201,12 +201,12 @@ def findMatchSite(team1, team2):
 		for match in names:
 			check = True
 			matchID = re.findall('"homeAway":.*?"href":".*?gameId=(.*?)",', match, re.DOTALL)[0][0:6]
-			homeTeam = re.findall('"homeAway":"home".*?"team":{"a.*?"displayName":"(.*?)"', match, re.DOTALL)
+			homeTeam = re.findall('"homeAway":"home".*?"team":{.*?"alternateColor".*?"displayName":"(.*?)"', match, re.DOTALL)
 			if len(homeTeam) > 0:
 				homeTeam = homeTeam[0]
 			else:
 				check = False
-			awayTeam = re.findall('"homeAway":"away".*?"team":{"a.*?"displayName":"(.*?)"', match, re.DOTALL)
+			awayTeam = re.findall('"homeAway":"away".*?"team":{.*?"alternateColor".*?"displayName":"(.*?)"', match, re.DOTALL)
 			if len(awayTeam) > 0:
 				awayTeam = awayTeam[0]
 			else:
@@ -356,7 +356,7 @@ def getLineUps(matchID):
 # get venue, ref, lineups, etc from ESPN	
 def getMatchInfo(matchID):
 	lineAddress = "http://www.espn.com/soccer/match?gameId=" + matchID
-	print getTimestamp() + "Finding ESPNFC info from " + lineAddress + "...",
+	print getTimestamp() + "Finding ESPN info from " + lineAddress + "...",
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 
@@ -636,7 +636,7 @@ def createNewThread(team1,team2,reqr,sub):
 		
 		#[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 		
-		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espn.com/soccer/match?gameId=' + matchID + ')*\n\n'
+		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPN](http://www.espn.com/soccer/match?gameId=' + matchID + ')*\n\n'
 		body += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^(Click here)](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
 
 		
@@ -875,7 +875,7 @@ def updateScore(matchID, t1, t2, sub):
 		else:
 			text = '#**' + status + ": " +  t1 + ' ' + leftScore + '-' + rightScore + ' ' + t2 + '**\n\n'
 		if not ESPNUpdating:
-			text += '*If the match has started, ESPNFC might not be providing updates for this game.*\n\n'
+			text += '*If the match has started, ESPN might not be providing updates for this game.*\n\n'
 		
 		if info != '':
 			text += '***' + info + '***\n\n'
@@ -934,7 +934,7 @@ def updateThreads():
 		
 		t1id,t2id = getTeamIDs(matchID)
 		newbody = writeLineUps(sub,bodyTilThen,team1,t1id,team2,t2id,team1Start,team1Sub,team2Start,team2Sub)
-		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPNFC](http://www.espn.com/soccer/match?gameId=' + matchID + ')*\n\n'
+		newbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPN](http://www.espn.com/soccer/match?gameId=' + matchID + ')*\n\n'
 		
 		botstat,statmsg = getBotStatus()
 		if botstat != 'green':
