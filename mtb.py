@@ -1,20 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import praw,urllib2,cookielib,re,logging,logging.handlers,datetime,requests,requests.auth,sys,json,unicodedata
+import praw,urllib,http.cookiejar,re,logging,logging.handlers,datetime,requests,requests.auth,sys,json,unicodedata
 from praw.models import Message
 from collections import Counter
 from itertools import groupby
 from time import sleep
 
 # TO DO: 
-# python 3
-#  print(" ")
-#  urllib2 to urllib
-#  cookielib to http.cookiejar
-#  s = f.read().decode('utf8') line not needed? python 3 decodes automatically
-# use goal.com to bypass thread request
-# switch from urllib2 to requests maybe
+# cookielib to http.cookiejar
 # deal with incorrect matching of non-existent game (eg using "City", etc) - ie better way of finding matches (nearest neighbour?)
 # more robust handling of errors
 
@@ -32,6 +26,7 @@ activeThreads = []
 notify = False
 messaging = True
 spriteSubs = ['soccer','Gunners','fcbayern','soccerdev2','mls']
+DSTtimedelta = 4
 
 # naughty list				
 usrblacklist = ['dbawbaby',
@@ -40,88 +35,109 @@ usrblacklist = ['dbawbaby',
 				
 # allowed to make multiple threads
 usrwhitelist = ['spawnofyanni',
-				'Omar_Til_Death']
+				'Omar_Til_Death',
+				'x69-',
+				'overscore_']
 				
 # allowed to post early threads in given subreddit
 timewhitelist = {'matchthreaddertest': ['spawnofyanni'],
 				 'ussoccer': ['redravens'],
 				 'coyssandbox': ['wardamnspurs'],
-				 'rsca': ['GhustBE']}
+				 'rsca': ['ghustbe'],
+				 'brightonhovealbion': ['discombobulated_pen']}
 
 # adjust time limit in given subreddit				 
 custTimeLimit = {'coyh': [30],
-				 'fccincinnati': [35]}
+				 'fccincinnati': [35],
+				 'soccer': [20],
+				 'indianfootball': [60],
+				 'canadasoccer': [30],
+				 'themariners': [60],
+				 'brightonhovealbion': [1440],
+				 'chelseafc': [60],
+				 'coyh': [60],
+				 'mls': [15]}
+				 
+# subreddit needs link flair
+needsflairlist = {'soccer': 8,
+				  'matchthreaddertest': 1,
+				  'santosfc': 0,
+				  'futebol': 6,
+				  'fobaluru': 8,
+				  'chelseafc': 25,
+				  'brightonhovealbion': 11,
+				  'themariners': 21,
+				  'panathinaikos': 1,
+				  'primeiraliga': 0}
 
 # markup constants
 goal=0;pgoal=1;ogoal=2;mpen=3;yel=4;syel=5;red=6;subst=7;subo=8;subi=9;strms=10;lines=11;evnts=12
 
 def getTimestamp():
-	dt = str(datetime.datetime.now().month) + '/' + str(datetime.datetime.now().day) + ' '
-	hr = str(datetime.datetime.now().hour) if len(str(datetime.datetime.now().hour)) > 1 else '0' + str(datetime.datetime.now().hour)
-	min = str(datetime.datetime.now().minute) if len(str(datetime.datetime.now().minute)) > 1 else '0' + str(datetime.datetime.now().minute)
-	t = '[' + hr + ':' + min + '] '
-	return dt + t
+        dt = str(datetime.datetime.now().month) + '/' + str(datetime.datetime.now().day) + ' '
+        hr = str(datetime.datetime.now().hour) if len(str(datetime.datetime.now().hour)) > 1 else '0' + str(datetime.datetime.now().hour)
+        min = str(datetime.datetime.now().minute) if len(str(datetime.datetime.now().minute)) > 1 else '0' + str(datetime.datetime.now().minute)
+        t = '[' + hr + ':' + min + '] '
+        return dt + t
 
 def setup():
-	try:
-		f = open('login.txt')
-		admin,username,password,subreddit,user_agent,id,secret,redirect = f.readline().split('||',8)
-		f.close()
-		r = praw.Reddit(client_id=id,
-                     client_secret=secret,
-                     password=password,
-                     user_agent=user_agent,
-                     username=username)
-		print getTimestamp() + "OAuth session opened as /u/" + r.user.me().name
-		return r,admin,username,password,subreddit,user_agent,id,secret,redirect
-	except:
-		print getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)\n"
-		logger.exception("[SETUP ERROR:]")
-		sleep(10)
+        try:
+                f = open('login.txt')
+                line = f.readline()
+                admin,username,password,subreddit,user_agent,id,secret,redirect = line.split('||',8)
+                f.close()
+                r = praw.Reddit(client_id=id, client_secret=secret, username=username, password=password, user_agent=user_agent)
+                r.validate_on_submit = True
+                return r,admin,username,password,subreddit,user_agent,id,secret,redirect
+        except:
+                print(getTimestamp() + "Setup error: please ensure 'login.txt' file exists in its correct form (check readme for more info)\n")
+                logger.exception("[SETUP ERROR:]")
+                sleep(10)
 	
 # save activeThreads
 def saveData():
 	f = open('active_threads.txt', 'w+')
 	s = ''
 	for data in activeThreads:
-		matchID,t1,t2,thread_id,reqr,sub = data
-		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + reqr + '####' + sub + '&&&&'
+		matchID,t1,t2,thread_id,reqr,sub,type = data
+		s += matchID + '####' + t1 + '####' + t2 + '####' + thread_id + '####' + reqr + '####' + sub + '####' + type + '&&&&'
 	s = s[0:-4] # take off last &&&&
-	f.write(s.encode('utf8'))
+	f.write(s)
 	f.close()
 
 # read saved activeThreads data	
 def readData():
 	f = open('active_threads.txt', 'a+')
-	s = f.read().decode('utf8')
+	f.seek(0)
+	s = f.read()
 	info = s.split('&&&&')
 	if info[0] != '':
+		
 		for d in info:
-			[matchID,t1,t2,thread_id,reqr,sub] = d.split('####')
-			matchID = matchID.encode('utf8') # get rid of weird character at start - got to be a better way to do this...
-			data = matchID, t1, t2, thread_id, reqr, sub
+			[matchID,t1,t2,thread_id,reqr,sub,type] = d.split('####')
+			data = matchID, t1, t2, thread_id, reqr, sub, type
 			activeThreads.append(data)
 			logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
-			print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
+			print(getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")")
 	f.close()
 	
 def resetAll():
 	logger.info("[RESET ALL]")
-	print getTimestamp() + "Resetting all threads..."
+	print(getTimestamp() + "Resetting all threads...")
 	removeList = list(activeThreads)
 	for data in removeList:
 		activeThreads.remove(data)
 		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), data[1], data[2], data[5])
-		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + data[1] + " vs " + data[2] + " (/r/" + data[5] + ")"
+		print(getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + data[1] + " vs " + data[2] + " (/r/" + data[5] + ")")
 		saveData()
-	print "complete."
+	print("complete.")
 		
 def flushMsgs():
 	logger.info("[FLUSH MSGS]")
-	print getTimestamp() + "Flushing messages..."
+	print(getTimestamp() + "Flushing messages...")
 	for msg in r.inbox.unread(limit=None):
 		msg.mark_read()
-	print "complete."
+	print("complete.")
 
 def loadMarkup(subreddit):
 	try:
@@ -129,27 +145,6 @@ def loadMarkup(subreddit):
 	except:
 		markup = [line.rstrip('\n') for line in open('soccer.txt')]
 	return markup
-	
-def getRelatedSubreddits():
-	page = r.subreddit('soccer').wiki['relatedsubreddits'].content_md
-	subs = re.findall('/r/(.*?) ',page,re.DOTALL)
-	subs = [s.replace('\r','') for s in subs]
-	subs = [s.replace('\n','') for s in subs]
-	subs = [s.replace('*','') for s in subs]
-	subs = [s.replace('#','') for s in subs]
-	subs.append(u'matchthreaddertest')
-	subs.append(u'mlslounge')
-	subs.append(u'wycombewanderersfc')
-	subs.append(u'halamadrid')
-	subs.append(u'bih')
-	subs.append(u'soccerdev2')
-	subs.append(u'whufc')
-	subs.append(u'coyssandbox')
-	subs.append(u'reallfc')
-	subs.append(u'chelsea')
-	subs.append(u'futbolclubbarcelona')
-	subs = [x.lower() for x in subs]
-	return subs
 	
 def getBotStatus():
 	thread = r.submission('22ah8i')
@@ -192,7 +187,8 @@ def guessRightMatch(possibles):
 	
 def findMatchSite(team1, team2):
 	# search for each word in each team name in the fixture list, return most frequent result
-	print getTimestamp() + "Finding ESPN site for " + team1 + " vs " + team2 + "...",
+	print(getTimestamp() + "Finding ESPN site for " + team1 + " vs " + team2 + "...", end='')
+	starttime = datetime.datetime.now()
 	try:
 		t1 = team1.split()
 		t2 = team2.split()
@@ -206,7 +202,7 @@ def findMatchSite(team1, team2):
 		del names[-1]
 		for match in names:
 			check = True
-			matchID = re.findall('"homeAway":.*?"href":".*?gameId=(.*?)",', match, re.DOTALL)[0][0:6]
+			matchID = re.findall('"homeAway":.*?"href":".*?gameId(?:=|/)(.*?)",', match, re.DOTALL)[0][0:6]
 			homeTeam = re.findall('"homeAway":"home".*?"team":{.*?"alternateColor".*?"displayName":"(.*?)"', match, re.DOTALL)
 			if len(homeTeam) > 0:
 				homeTeam = homeTeam[0]
@@ -230,21 +226,25 @@ def findMatchSite(team1, team2):
 						linkList.append(matchID)		
 		counts = Counter(linkList)
 		if counts.most_common(1) != []:
-			freqs = groupby(counts.most_common(), lambda x:x[1])
+			#freqs = groupby(counts.most_common(), lambda x:x[1])
 			possibles = []
-			for val,ct in freqs.next()[1]:
+			for val,grp in groupby(counts.most_common(), lambda x:x[0]):
 				possibles.append(val)
 				if len(possibles) > 1:
 					mode = guessRightMatch(possibles)
 				else:
 					mode = possibles[0]
-			print "complete."
+			endtime = datetime.datetime.now()
+			timeelapsed = endtime - starttime
+			print("complete (" + str(timeelapsed.seconds) + " seconds)")
 			return mode
 		else:
-			print "complete."
+			endtime = datetime.datetime.now()
+			timeelapsed = endtime - starttime
+			print("complete (" + str(timeelapsed.seconds) + " seconds)")
 			return 'no match'
 	except requests.exceptions.Timeout:
-		print "ESPN access timeout"
+		print("ESPN access timeout")
 		return 'no match'
 
 def getTeamIDs(matchID):
@@ -376,7 +376,7 @@ def getTeamAbbrevs(matchID):
 # get venue, ref, lineups, etc from ESPN	
 def getMatchInfo(matchID):
 	lineAddress = "http://www.espn.com/soccer/match?gameId=" + matchID
-	print getTimestamp() + "Finding ESPN info from " + lineAddress + "...",
+	print(getTimestamp() + "Finding ESPN info from " + lineAddress + "...", end='')
 	lineWebsite = requests.get(lineAddress, timeout=15)
 	line_html = lineWebsite.text
 
@@ -397,7 +397,7 @@ def getMatchInfo(matchID):
 		ko_date = ko_date[0]
 		ko_day = ko_date[8:]
 		ko_time = re.findall('<span data-date=".*?T(.*?)Z', line_html, re.DOTALL)[0]
-		# above time is actually 5 hours from now (ESPN time in source code)
+		# above time is actually "DSTtimedelta" hours from now (ESPN time in source code)
 	else:
 		ko_day = ''
 		ko_time = ''
@@ -417,24 +417,27 @@ def getMatchInfo(matchID):
 		comp = ''
 		
 	team1Start,team1Sub,team2Start,team2Sub = getLineUps(matchID)
-	print "complete."
+	print("complete.")
 	return (team1fix,t1id,team2fix,t2id,team1Start,team1Sub,team2Start,team2Sub,venue,ko_day,ko_time,status,comp,t1abb,t2abb)
 	
 def getSprite(teamID,sub):
-	customCrestSubs = ['mls']
-	crestFile = 'crests.txt'
-	if sub in customCrestSubs:
-		crestFile = sub + crestFile
-	lines = [line.rstrip('\n') for line in open(crestFile)]
-	for line in lines:
-		if line != '' and not line.startswith('||'):
-			line = line.split('\t')[len(line.split('\t'))-1]
-			split = line.split('::')
-			EID = split[0]
-			sprite = split[1]
-			if EID == teamID:
-				return sprite
-	return ''
+	try:
+		customCrestSubs = ['mls']
+		crestFile = 'crests.txt'
+		if sub in customCrestSubs:
+			crestFile = sub + crestFile
+		lines = [line.rstrip('\n') for line in open(crestFile)]
+		for line in lines:
+			if line != '' and not line.startswith('||'):
+				line = line.split('\t')[len(line.split('\t'))-1]
+				split = line.split('::')
+				EID = split[0]
+				sprite = split[1]
+				if EID == teamID:
+					return sprite
+		return ''
+	except:
+		return ''
 	
 def writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub):
 	markup = loadMarkup(sub)
@@ -534,18 +537,21 @@ def getTimes(ko):
 	
 # attempt submission to subreddit
 def submitThread(sub,title):
-	print getTimestamp() + "Submitting " + title + "...",
+	print(getTimestamp() + "Submitting " + title + "...", end='')
 	try:
-		thread = r.subreddit(sub).submit(title,selftext='**Venue:**\n\n**LINE-UPS**',send_replies=False)
-		print "complete."
+		if sub in needsflairlist:
+			thread = r.subreddit(sub).submit(title,selftext='**Venue:**\n\n**LINE-UPS**',send_replies=False,flair_id=list(r.subreddit(sub).flair.link_templates)[needsflairlist[sub]]['id'])
+		else:
+			thread = r.subreddit(sub).submit(title,selftext='**Venue:**\n\n**LINE-UPS**',send_replies=False)
+		print("complete.")
 		return True,thread
 	except:
-		print "failed."
+		print("failed.")
 		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 	
 # create a new thread using provided teams	
-def createNewThread(team1,team2,reqr,sub,direct):	
+def createNewThread(team1,team2,reqr,sub,direct,type):	
 	if direct == '':
 		matchID = findMatchSite(team1,team2)
 	else:
@@ -557,44 +563,37 @@ def createNewThread(team1,team2,reqr,sub,direct):
 				t1, t1id, t2, t2id, team1Start, team1Sub, team2Start, team2Sub, venue, ko_day, ko_time, status, comp, t1abb, t2abb = getMatchInfo(matchID)
 				gotinfo = True
 			except requests.exceptions.Timeout:
-				print getTimestamp() + "ESPNFC access timeout for " + team1 + " vs " + team2
+				print(getTimestamp() + "ESPNFC access timeout for " + team1 + " vs " + team2)
 		
 		botstat,statmsg = getBotStatus()
 		# don't make a post if there's some fatal error
 		if botstat == 'red':
-			print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request for - status set to red"
+			print(getTimestamp() + "Denied " + t1 + " vs " + t2 + " request for - status set to red")
 			logger.info("Denied %s vs %s request - status set to red", t1, t2)
 			return 8,''
-		
-		# only post to related subreddits
-		relatedsubs = getRelatedSubreddits()
-		if sub.lower() not in relatedsubs:
-			print getTimestamp() + "Denied post request to /r/" + sub + " - not related"
-			logger.info("Denied post request to %s - not related", sub)
-			return 6,''
-		
+				
 		# don't post if user is blacklisted
 		if reqr in usrblacklist:
-			print getTimestamp() + "Denied post request from /u/" + reqr + " - blacklisted"
+			print(getTimestamp() + "Denied post request from /u/" + reqr + " - blacklisted")
 			logger.info("Denied post request from %s - blacklisted", reqr)
 			return 9,''
 		
 		# don't create a thread if the bot already made it or if user already has an active thread
 		for d in activeThreads:
-			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at = d
-			if t1 == t1_at and sub == sub_at:
-				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request for /r/" + sub + " - thread already exists"
+			matchID_at,t1_at,t2_at,id_at,reqr_at,sub_at,type_at = d
+			if t1 == t1_at and sub == sub_at and type == type_at:
+				print(getTimestamp() + "Denied " + t1 + " vs " + t2 + " request for /r/" + sub + " - thread already exists")
 				logger.info("Denied %s vs %s request for %s - thread already exists", t1, t2, sub)
 				return 4,id_at
 			if reqr == reqr_at and reqr not in usrwhitelist:
-				print getTimestamp() + "Denied post request from /u/" + reqr + " - has an active thread request"
+				print(getTimestamp() + "Denied post request from /u/" + reqr + " - has an active thread request")
 				logger.info("Denied post request from %s - has an active thread request", reqr)
 				return 7,''
 		
 		# don't create a thread if the match is done (probably found the wrong match)
 		if reqr != admin:
 			if status.startswith('FT') or status == 'AET':
-				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished"
+				print(getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - match appears to be finished")
 				logger.info("Denied %s vs %s request - match appears to be finished", t1, t2)
 				return 3,''
 		
@@ -604,23 +603,27 @@ def createNewThread(team1,team2,reqr,sub,direct):
 		# don't create a thread more than 5 minutes before kickoff
 		if sub.lower() not in timewhitelist or sub.lower() in timewhitelist and reqr.lower() not in timewhitelist[sub.lower()]:
 			hour_i, min_i, now = getTimes(ko_time)
-			now_f = now + datetime.timedelta(hours = 5, minutes = timelimit)
+			now_f = now + datetime.timedelta(hours = DSTtimedelta, minutes = timelimit)
 			if ko_day == '':
 				return 1,''
 			if now_f.day < int(ko_day):
-				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
+				print(getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than " + timelimit + " minutes to kickoff")
+				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff (day check failed)", t1, t2)
 				return 2,''
-			if now_f.hour < hour_i:
-				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
+			if (now_f.day == int(ko_day)) and (now_f.hour < hour_i):
+				print(getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than " + timelimit + " minutes to kickoff")
+				#print(str(now_f.hour) + ' vs ' + str(hour_i))
+				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff (hour check failed)", t1, t2)
 				return 2,''
 			if (now_f.hour == hour_i) and (now_f.minute < min_i):
-				print getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than 5 minutes to kickoff"
-				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff", t1, t2)
+				print(getTimestamp() + "Denied " + t1 + " vs " + t2 + " request - more than " + timelimit + " minutes to kickoff")
+				logger.info("Denied %s vs %s request - more than 5 minutes to kickoff (minute check failed)", t1, t2)
 				return 2,''
 
-		title = 'Match Thread: ' + t1 + ' vs ' + t2
+		title = ''
+		if type == 'srs':
+			title += 'Serious '
+		title += 'Match Thread: ' + t1 + ' vs ' + t2
 		if (sub in ['matchthreaddertest','soccerdev2']):
 			title = title + ' [' + t1abb + '-' + t2abb + ']'
 		if comp != '':
@@ -632,13 +635,13 @@ def createNewThread(team1,team2,reqr,sub,direct):
 			return 5,''
 		
 		short = thread.shortlink
-		id = short[short.index('.it/')+4:].encode("utf8")
+		id = short[short.index('.it/')+4:]
 		redditstream = 'http://www.reddit-stream.com/comments/' + id 
 		
-		data = matchID, t1, t2, id, reqr, sub
+		data = matchID, t1, t2, id, reqr, sub, type
 		activeThreads.append(data)
 		saveData()
-		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")"
+		print(getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - added " + t1 + " vs " + t2 + " (/r/" + sub + ")")
 		logger.info("Active threads: %i - added %s vs %s (/r/%s)", len(activeThreads), t1, t2, sub)
 		
 		if status == 'v':
@@ -652,32 +655,32 @@ def createNewThread(team1,team2,reqr,sub,direct):
 			if getSprite(t1id,sub) != '' and getSprite(t2id,sub) != '':
 				t1sprite = getSprite(t1id,sub)
 				t2sprite = getSprite(t2id,sub)
-			body = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [vs](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
+			textbody = '#**' + status + ': ' + t1 + ' ' + t1sprite + ' [vs](#bar-3-white) ' + t2sprite + ' ' + t2 + '**\n\n'
 
 		else:
-			body = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
+			textbody = '#**' + status + ": " + t1 + ' vs ' + t2 + '**\n\n'
 
-		body += '**Venue:** ' + venue + '\n\n'
-		body += '[Auto-refreshing reddit comments link](' + redditstream + ')\n\n---------\n\n'
+		textbody += '**Venue:** ' + venue + '\n\n'
+		textbody += '[Auto-refreshing reddit comments link](' + redditstream + ')\n\n---------\n\n'
 
-		body += markup[lines] + ' ' 
-		body = writeLineUps(sub,body,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub)
+		textbody += markup[lines] + ' ' 
+		textbody = writeLineUps(sub,textbody,t1,t1id,t2,t2id,team1Start,team1Sub,team2Start,team2Sub)
 		
 		#[^[Request ^a ^match ^thread]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Thread&message=Team%20vs%20Team) ^| [^[Request ^a ^thread ^template]](http://www.reddit.com/message/compose/?to=MatchThreadder&subject=Match%20Info&message=Team%20vs%20Team) ^| [^[Current ^status ^/ ^bot ^info]](http://www.reddit.com/r/soccer/comments/22ah8i/introducing_matchthreadder_a_bot_to_set_up_match/)"
 		
-		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPN](http://www.espn.com/soccer/match?gameId=' + matchID + ')*\n\n'
-		body += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^(Click here)](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
+		textbody += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS** | *via [ESPN](http://www.espn.com/soccer/match?gameId=' + matchID + ')*\n\n'
+		textbody += "\n\n--------\n\n*^(Don't see a thread for a match you're watching?) [^(Click here)](https://www.reddit.com/r/soccer/wiki/matchthreads#wiki_match_thread_bot) ^(to learn how to request a match thread from this bot.)*"
 
 		
 		if botstat != 'green':
-			body += '*' + statmsg + '*\n\n'
+			textbody += '*' + statmsg + '*\n\n'
 		
-		thread.edit(body)
+		thread.edit(textbody)
 		sleep(5)
 
 		return 0,id
 	else:
-		print getTimestamp() + "Could not find match info for " + team1 + " vs " + team2
+		print(getTimestamp() + "Could not find match info for " + team1 + " vs " + team2)
 		logger.info("Could not find match info for %s vs %s", team1, team2)
 		return 1,''
 
@@ -697,7 +700,7 @@ def createMatchInfo(team1,team2):
 		body += '\n\n------------\n\n' + markup[evnts] + ' **MATCH EVENTS**\n\n'
 		
 		logger.info("Provided info for %s vs %s", t1, t2)
-		print getTimestamp() + "Provided info for " + t1 + " vs " + t2
+		print(getTimestamp() + "Provided info for " + t1 + " vs " + t2)
 		return 0,body
 	else:
 		return 1,''
@@ -709,12 +712,12 @@ def deleteThread(id):
 			id = re.findall('comments/(.*?)/',id)[0]
 		thread = r.submission(id)
 		for data in activeThreads:
-			matchID,team1,team2,thread_id,reqr,sub = data
+			matchID,team1,team2,thread_id,reqr,sub,type = data
 			if thread_id == id:
 				thread.delete()
 				activeThreads.remove(data)
 				logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), team1, team2, sub)
-				print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
+				print(getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")")
 				saveData()
 				return team1 + ' vs ' + team2
 		return ''
@@ -727,7 +730,7 @@ def removeWrongThread(id,req):
 		thread = r.submission(id)
 		dif = datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(thread.created_utc)
 		for data in activeThreads:
-			matchID,team1,team2,thread_id,reqr,sub = data
+			matchID,team1,team2,thread_id,reqr,sub,type = data
 			if thread_id == id:
 				if reqr != req:
 					return 'req'
@@ -736,7 +739,7 @@ def removeWrongThread(id,req):
 				thread.delete()
 				activeThreads.remove(data)
 				logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), team1, team2, sub)
-				print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")"
+				print(getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + team1 + " vs " + team2 + " (/r/" + sub + ")")
 				saveData()
 				return team1 + ' vs ' + team2
 		return 'thread'
@@ -746,7 +749,7 @@ def removeWrongThread(id,req):
 # default attempt to find teams: split input in half, left vs right	
 def firstTryTeams(msg):
 	t = msg.split()
-	spl = len(t)/2
+	spl = int(len(t)/2)
 	t1 = t[0:spl]
 	t2 = t[spl+1:]
 	t1s = ''
@@ -759,9 +762,10 @@ def firstTryTeams(msg):
 
 # check for new mail, create new threads if needed
 def checkAndCreate():
-	detour = False
+	detour = True
+	replytext = "Update from /u/spawnofyanni, June 15:\n\nHi there. I'm currently redirecting all DMs sent to /u/matchthreadder to this automated message. ESPN seems to have gone through a major backend redesign, which means that all of the code that runs this bot was just made obsolete. I'm going to spend a little time figuring out how bad this problem is, and will post an update on what this means as soon as I can. In the mean time, I'd recommend making a thread manually."
 	if len(activeThreads) > 0:		
-		print getTimestamp() + "Checking messages..."
+		print(getTimestamp() + "Checking messages...")
 	delims = [' x ',' - ',' v ',' vs ']
 	#unread_messages = []
 	subdel = ' for '
@@ -771,31 +775,41 @@ def checkAndCreate():
 		#	unread_messages.append(msg)
 		sub = subreddit
 		if msg.subject.lower() == 'mtdirect':
-			subreq = msg.body.split(subdel,2)
-			if subreq[0] != msg.body:
-				sub = subreq[1].split('/')[-1]
-				sub = sub.lower()
-				sub = sub.strip()
-			threadStatus,thread_id = createNewThread('','',msg.author.name,sub,subreq[0])
-			if messaging:
-				if threadStatus == 0: # thread created successfully
-					msg.reply("[Here](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*")
-				if threadStatus == 1: # not found
-					msg.reply("Sorry, I couldn't find info for that match. If the match you requested appears on [this page](http://www.espn.com/soccer/scores), please let /u/spawnofyanni know about this error.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
-				if threadStatus == 2: # before kickoff
-					msg.reply("Please wait until at least 5 minutes to kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
-				if threadStatus == 3: # after full time - probably found the wrong match
-					msg.reply("Sorry, I couldn't find a currently live match with those teams - are you sure the match has started (and hasn't finished)? If you think this is a mistake, it probably means I can't find that match.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
-				if threadStatus == 4: # thread already exists
-					msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
-				if threadStatus == 5: # invalid subreddit
-					msg.reply("Sorry, I couldn't post to /r/" + sub + ". It may not exist, or I may have hit a posting limit.")
-				if threadStatus == 6: # sub blacklisted
-					msg.reply("Sorry, I can't post to /r/" + sub + ". Please message /u/" + admin + " if you think this is a mistake.")
-					
-		if msg.subject.lower() == 'match thread':
 			if detour and msg.author.name != admin:
-				msg.reply('/u/MatchThreadder is down for maintenance (starting Dec 5). The bot should be back up in a few days. Keep an eye out for when it starts posting threads again - message /u/spawnofyanni if you have any questions!\n\n--------------\n\n[Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to make your own match thread.')
+				#replytext = '/u/MatchThreadder is down for maintenance (starting Dec 5). The bot should be back up in a few days. Keep an eye out for when it starts posting threads again - message /u/spawnofyanni if you have any questions!\n\n--------------\n\n[Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to make your own match thread.'
+				msg.reply(body=replytext)
+			else:
+				subreq = msg.body.split(subdel,2)
+				if subreq[0] != msg.body:
+					sub = subreq[1].split('/')[-1]
+					sub = sub.lower()
+					sub = sub.strip()
+				threadStatus,thread_id = createNewThread('','',msg.author.name,sub,subreq[0],'reg')
+				if messaging:
+					replytext = ""
+					if threadStatus == 0: # thread created successfully
+						replytext = "[Here](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*"
+					if threadStatus == 1: # not found
+						replytext = "Sorry, I couldn't find info for that match. If the match you requested appears on [this page](http://www.espn.com/soccer/scores), please let /u/spawnofyanni know about this error.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*"
+					if threadStatus == 2: # before kickoff
+						replytext = "Please wait until at least 5 minutes to kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*"
+					if threadStatus == 3: # after full time - probably found the wrong match
+						replytext = "Sorry, I couldn't find a currently live match with those teams - are you sure the match has started (and hasn't finished)? If you think this is a mistake, it probably means I can't find that match.\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*"
+					if threadStatus == 4: # thread already exists
+						replytext = "There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!"
+					if threadStatus == 5: # invalid subreddit
+						replytext = "Sorry, I couldn't post to /r/" + sub + ". It may not exist, or I may have hit a posting limit."
+					if threadStatus == 6: # sub blacklisted
+						replytext = "Sorry, I can't post to /r/" + sub + ". Please message /u/" + admin + " if you think this is a mistake."
+					msg.reply(body=replytext)
+					
+		if msg.subject.lower() == 'match thread' or msg.subject.lower() == 'serious match thread':
+			type = 'reg'
+			if msg.subject.lower() == 'serious match thread':
+				type = 'srs'
+			if detour and msg.author.name != admin:
+				#replytext = '/u/MatchThreadder is down for maintenance (starting Dec 5). The bot should be back up in a few days. Keep an eye out for when it starts posting threads again - message /u/spawnofyanni if you have any questions!\n\n--------------\n\n[Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to make your own match thread.'
+				msg.reply(body=replytext)
 			else:
 				subreq = msg.body.split(subdel,2)
 				if subreq[0] != msg.body:
@@ -803,40 +817,44 @@ def checkAndCreate():
 					sub = sub.lower()
 					sub = sub.strip()
 				if subreq[0].strip().isdigit():
-					threadStatus,thread_id = createNewThread('','',msg.author.name,sub,subreq[0].strip())
+					threadStatus,thread_id = createNewThread('','',msg.author.name,sub,subreq[0].strip(),type)
 				else:
 					teams = firstTryTeams(subreq[0].strip())
 					for delim in delims:
 						attempt = subreq[0].split(delim,2)
 						if attempt[0] != subreq[0]:
 							teams = attempt
-					threadStatus,thread_id = createNewThread(teams[0],teams[1],msg.author.name,sub,'')
+					threadStatus,thread_id = createNewThread(teams[0],teams[1],msg.author.name,sub,'',type)
 				if messaging:
+					replytext = ""
 					if threadStatus == 0: # thread created successfully
-						msg.reply("[Here](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*")
+						replytext = "[Here](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") is a link to the thread you've requested. Thanks for using this bot!\n\n-------------------------\n\n*Did I create a thread for the wrong match? [Click here and press send](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ") to delete the thread (note: this will only work within five minutes of the thread's creation). This probably means that I can't find the right match - sorry!*"
 						if notify:
 							r.send_message(admin,"Match thread request fulfilled","/u/" + msg.author.name + " requested " + teams[0] + " vs " + teams[1] + " in /r/" + sub + ". \n\n[Thread link](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") | [Deletion link](http://www.reddit.com/message/compose/?to=" + username + "&subject=delete&message=" + thread_id + ")")
 					if threadStatus == 1: # not found
-						msg.reply("Sorry, I couldn't find info for that match. If the match you requested appears on [this page](http://www.espn.com/soccer/scores), please let /u/spawnofyanni know about this error.\n\n-------------------------\n\n*Note: Have you tried requesting this thread using the [ESPN match ID](https://i.imgur.com/qNkrV5W.png)? This method of requesting threads can work better than referencing team names. [Click here](https://www.reddit.com/r/soccer/comments/bd30gq/matchthreadder_update_a_new_way_to_request_threads/) for more information.*")
+						replytext = "Sorry, I couldn't find info for that match. If the match you requested appears on [this page](http://www.espn.com/soccer/scores), please let /u/spawnofyanni know about this error.\n\n-------------------------\n\n*Note: Have you tried requesting this thread using the [ESPN match ID](https://i.imgur.com/qNkrV5W.png)? This method of requesting threads can work better than referencing team names. [Click here](https://www.reddit.com/r/soccer/comments/bd30gq/matchthreadder_update_a_new_way_to_request_threads/) for more information.*"
 					if threadStatus == 2: # before kickoff
-						msg.reply("Please wait until at least 5 minutes to kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*")
+						replytext = "Please wait until at least 5 minutes to kickoff to send me a thread request, just in case someone does end up making one themselves. Thanks!\n\n-------------------------\n\n*Why not run your own match thread? [Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you're not sure how.*\n\n*You could also check out these match thread creation tools from /u/afito and /u/Mamu7490:*\n\n*[RES Templates](https://www.reddit.com/r/soccer/comments/3ndd7b/matchthreads_for_beginners_the_easy_way/)*\n\n*[MTmate](https://www.reddit.com/r/soccer/comments/3huyut/release_v09_of_mtmate_matchthread_generator/)*"
 					if threadStatus == 3: # after full time - probably found the wrong match
-						msg.reply("Sorry, I couldn't find a currently live match with those teams - are you sure the match has started (and hasn't finished)?\n\n-------------------------\n\n*Note: If you think this is a mistake, it probably means I can't find that match. Have you tried requesting this thread using the [ESPN match ID](https://i.imgur.com/qNkrV5W.png)? This method of requesting threads can work better than referencing team names. [Click here](https://www.reddit.com/r/soccer/comments/bd30gq/matchthreadder_update_a_new_way_to_request_threads/) for more information.*")
+						replytext = "Sorry, I couldn't find a currently live match with those teams - are you sure the match has started (and hasn't finished)?\n\n-------------------------\n\n*Note: If you think this is a mistake, it probably means I can't find that match. Have you tried requesting this thread using the [ESPN match ID](https://i.imgur.com/qNkrV5W.png)? This method of requesting threads can work better than referencing team names. [Click here](https://www.reddit.com/r/soccer/comments/bd30gq/matchthreadder_update_a_new_way_to_request_threads/) for more information.*"
 					if threadStatus == 4: # thread already exists
-						msg.reply("There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!")
+						replytext = "There is already a [match thread](http://www.reddit.com/r/" + sub + "/comments/" + thread_id + ") for that game. Join the discussion there!"
 					if threadStatus == 5: # invalid subreddit
-						msg.reply("Sorry, I couldn't post to /r/" + sub + ". It may not exist, or I may have hit a posting limit.")
+						replytext = "Sorry, I couldn't post to /r/" + sub + ". It may not exist, or I may have hit a posting limit."
 					if threadStatus == 6: # sub blacklisted
-						msg.reply("Sorry, I can't post to /r/" + sub + ". Please message /u/" + admin + " if you think this is a mistake.")
+						replytext = "Sorry, I can't post to /r/" + sub + ". Please message /u/" + admin + " if you think this is a mistake."
 					if threadStatus == 7: # thread limit
-						msg.reply("Sorry, you can only have one active thread request at a time.")
+						replytext = "Sorry, you can only have one active thread request at a time."
 					if threadStatus == 8: # status set to red
-						msg.reply("Sorry, the bot is currently unable to post threads. Check with /u/" + admin + " for more info; this should hopefully be resolved soon.")
+						replytext = "Sorry, the bot is currently unable to post threads. Check with /u/" + admin + " for more info; this should hopefully be resolved soon."
+					msg.reply(body=replytext)		
 					
 		if msg.subject.lower() == 'match info':
 			if detour:
-				msg.reply('/u/MatchThreadder is down for maintenance (starting Dec 5). The bot should be back up in a few days. Keep an eye out for when it starts posting threads again - message /u/spawnofyanni if you have any questions!\n\n--------------\n\n[Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to make your own match thread.')
+				#replytext = '/u/MatchThreadder is down for maintenance (starting Dec 5). The bot should be back up in a few days. Keep an eye out for when it starts posting threads again - message /u/spawnofyanni if you have any questions!\n\n--------------\n\n[Look here](https://www.reddit.com/r/soccer/wiki/matchthreads) for templates, tips, and example match threads from the past if you want to know how to make your own match thread.'
+				msg.reply(body=replytext)
 			else:
+				replytext = ""
 				teams = firstTryTeams(msg.body)
 				for delim in delims:
 					attempt = msg.body.split(delim,2)
@@ -844,31 +862,35 @@ def checkAndCreate():
 						teams = attempt
 				threadStatus,text = createMatchInfo(teams[0],teams[1])
 				if threadStatus == 0: # successfully found info
-					msg.reply("Below is the information for the match you've requested.\n\nIf you're using [RES](http://redditenhancementsuite.com/), you can use the 'source' button below this message to copy/paste the exact formatting code. If you aren't, you'll have to add the formatting yourself.\n\n----------\n\n" + text)
+					replytext = "Below is the information for the match you've requested.\n\nIf you're using [RES](http://redditenhancementsuite.com/), you can use the 'source' button below this message to copy/paste the exact formatting code. If you aren't, you'll have to add the formatting yourself.\n\n----------\n\n" + text
 				if threadStatus == 1: # not found
-					msg.reply("Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world.")
+					replytext = "Sorry, I couldn't find info for that match. In the future I'll account for more matches around the world."
+				msg.reply(body=replytext)
 		
 		if msg.subject.lower() == 'delete':
 			if msg.author.name == admin:
 				name = deleteThread(msg.body)
 				if messaging:
+					replytext = ""
 					if name != '':
-						msg.reply("Deleted " + name)
+						replytext = "Deleted " + name
 					else:
-						msg.reply("Thread not found")
+						replytext = "Thread not found"
+					msg.reply(body=replytext)
 			else:
 				name = removeWrongThread(msg.body,msg.author.name)
 				if messaging:
 					if name == 'thread':
-						msg.reply("Thread not found - please double-check thread ID")
+						replytext = "Thread not found - please double-check thread ID"
 					elif name == 'time':
-						msg.reply("This thread is more than five minutes old - thread deletion from now is an admin feature only. You can message /u/" + admin + " if you'd still like the thread to be deleted.")
+						replytext = "This thread is more than five minutes old - thread deletion from now is an admin feature only. You can message /u/" + admin + " if you'd still like the thread to be deleted."
 					elif name == 'req':
-						msg.reply("Username not recognised. Only the thread requester and bot admin have access to this feature.")
+						replytext = "Username not recognised. Only the thread requester and bot admin have access to this feature."
 					else:
-						msg.reply("Deleted " + name)
+						replytext = "Deleted " + name
+					msg.reply(body=replytext)
 	if len(activeThreads) > 0:						
-		print getTimestamp() + "All messages checked."
+		print(getTimestamp() + "All messages checked.")
 	#r.inbox.mark_read(unread_messages)
 				
 def getExtraInfo(matchID):
@@ -954,13 +976,13 @@ def updateScore(matchID, t1, t2, sub):
 		return '#**--**\n\n'
 		
 def createPMT(sub, title, body):
-	print getTimestamp() + "Submitting PMT for " + title + "...",
+	print(getTimestamp() + "Submitting PMT for " + title + "...", end='')
 	try:
 		thread = r.subreddit(sub).submit('Post ' + title,selftext=body,send_replies=False)
-		print "complete."
+		print("complete.")
 		return True,thread
 	except:
-		print "failed."
+		print("failed.")
 		logger.exception("[SUBMIT ERROR:]")
 		return False,''
 		
@@ -971,7 +993,7 @@ def updateThreads():
 	for data in activeThreads:
 		finished = False				
 		index = activeThreads.index(data)
-		matchID,team1,team2,thread_id,reqr,sub = data
+		matchID,team1,team2,thread_id,reqr,sub,type = data
 		thread = r.submission(thread_id)
 		body = thread.selftext
 		#print getTimestamp() + team1 + ' ' + team2
@@ -1012,10 +1034,10 @@ def updateThreads():
 		# save data
 		if newbody != body:
 			logger.info("Making edit to %s vs %s (/r/%s)", team1,team2,sub)
-			print getTimestamp() + "Making edit to " + team1 + " vs " + team2 + " (/r/" + sub + ")"
-			thread.edit(newbody)
+			print(getTimestamp() + "Making edit to " + team1 + " vs " + team2 + " (/r/" + sub + ")")
+			thread.edit(body=newbody)
 			saveData()
-		newdata = matchID,team1,team2,thread_id,reqr,sub
+		newdata = matchID,team1,team2,thread_id,reqr,sub,type
 		activeThreads[index] = newdata
 		
 		if finished:
@@ -1026,7 +1048,7 @@ def updateThreads():
 	for getRid in toRemove:
 		activeThreads.remove(getRid)
 		logger.info("Active threads: %i - removed %s vs %s (/r/%s)", len(activeThreads), getRid[1], getRid[2], getRid[5])
-		print getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2] + " (/r/" + getRid[5] + ")"
+		print(getTimestamp() + "Active threads: " + str(len(activeThreads)) + " - removed " + getRid[1] + " vs " + getRid[2] + " (/r/" + getRid[5] + ")")
 		saveData()
 
 logger = logging.getLogger('a')
@@ -1038,7 +1060,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.warning("[STARTUP]")
-print getTimestamp() + "[STARTUP]"
+print(getTimestamp() + "[STARTUP]")
 
 r,admin,username,password,subreddit,user_agent,id,secret,redirect = setup()
 readData()
@@ -1063,25 +1085,25 @@ while running:
 		sleep(60)
 	except KeyboardInterrupt:
 		logger.warning("[MANUAL SHUTDOWN]")
-		print getTimestamp() + "[MANUAL SHUTDOWN]\n"
+		print(getTimestamp() + "[MANUAL SHUTDOWN]\n")
 		running = False
 	except praw.exceptions.APIException:
 		retries += 1
-		print getTimestamp() + "API error, check log file [retries = " + str(retries) + "]"
+		print(getTimestamp() + "API error, check log file [retries = " + str(retries) + "]")
 		logger.exception("[API ERROR:]")
 		sleep(60)
 	except UnicodeDecodeError:
 		retries += 1
-		print getTimestamp() + "UnicodeDecodeError, check log file [retries = " + str(retries) + "]"
+		print(getTimestamp() + "UnicodeDecodeError, check log file [retries = " + str(retries) + "]")
 		logger.exception("[UNICODE ERROR:]")
 		flushMsgs()
 	except UnicodeEncodeError:
 		retries += 1
-		print getTimestamp() + "UnicodeEncodeError, check log file [retries = " + str(retries) + "]"
+		print(getTimestamp() + "UnicodeEncodeError, check log file [retries = " + str(retries) + "]")
 		logger.exception("[UNICODE ERROR:]")
 		flushMsgs()
 	except Exception:
 		retries += 1
-		print getTimestamp() + "Unknown error, check log file [retries = " + str(retries) + "]"
+		print(getTimestamp() + "Unknown error, check log file [retries = " + str(retries) + "]")
 		logger.exception("[UNKNOWN ERROR:]")
 		sleep(60) 
